@@ -1,7 +1,5 @@
 # huginn
 
-![Huginn — transcribe audio and video to text](docs/preview.png)
-
 Fast text transcripts of video and audio: read one in a couple of minutes and decide whether the whole thing is worth watching.
 
 - For links, the platform's existing subtitles are used first — that takes seconds.
