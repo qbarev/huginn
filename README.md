@@ -11,18 +11,21 @@
 ## Установка
 
 ```sh
-brew install uv ffmpeg
-uv sync
+./install.sh
 ```
+
+Установщик ставит через Homebrew недостающие `uv` и `ffmpeg`, устанавливает команду `huginn` и, если её каталог не в `PATH`, прописывает его в конфиг оболочки (`~/.zshrc`, `~/.bash_profile` или `~/.profile`). Сам Homebrew он не ставит. Повторный запуск безопасен.
+
+После этого команда `huginn` доступна из любой директории. Установка редактируемая: правки в коде проекта подхватываются без переустановки.
 
 `ffmpeg` нужен только для распознавания речи; транскрипты из субтитров создаются и без него.
 
 ## Запуск
 
 ```sh
-uv run huginn "https://www.youtube.com/watch?v=..."      # субтитры, если есть; иначе Whisper
-uv run huginn --whisper "https://www.youtube.com/watch?v=..."   # всегда Whisper
-uv run huginn lecture.mp4 ~/Recordings                   # файл и все медиафайлы директории
+huginn "https://www.youtube.com/watch?v=..."      # субтитры, если есть; иначе Whisper
+huginn --whisper "https://www.youtube.com/watch?v=..."   # всегда Whisper
+huginn lecture.mp4 ~/Recordings                   # файл и все медиафайлы директории
 ```
 
 Можно передать несколько источников сразу. Из директории берутся только медиафайлы верхнего уровня.
