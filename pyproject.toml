@@ -1,0 +1,31 @@
+[project]
+name = "huginn"
+version = "0.1.0"
+description = "Быстрые читаемые транскрипты видео и аудио для скрининга"
+readme = "README.md"
+authors = [
+    { name = "Kirill Kubarev", email = "qbarew@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "mlx-whisper>=0.4.3",
+    "yt-dlp>=2026.8.19",
+]
+
+[project.scripts]
+huginn = "huginn.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.uv]
+python-preference = "only-managed"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
