@@ -1,7 +1,7 @@
 [project]
 name = "huginn"
 version = "0.1.0"
-description = "Быстрые читаемые транскрипты видео и аудио для скрининга"
+description = "Fast, readable video and audio transcripts for screening"
 readme = "README.md"
 authors = [
     { name = "Kirill Kubarev", email = "qbarew@gmail.com" }

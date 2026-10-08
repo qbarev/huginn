@@ -24,4 +24,4 @@ class Result:
 
 
 class SourceError(Exception):
-    """Источник не удалось обработать; текст исключения — причина для сводки."""
+    """A source could not be processed; the message is the reason shown in the summary."""

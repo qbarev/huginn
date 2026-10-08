@@ -2,41 +2,41 @@
 
 ## Context
 
-См. `proposal.md`. Команда ставится через `uv tool install`; каталог её исполняемых файлов сообщает `uv tool dir --bin`.
+See `proposal.md`. The command is installed via `uv tool install`; the directory of its executables is reported by `uv tool dir --bin`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Скрипт полностью проверяется тестами без реальной установки.
+- The script is fully verified by tests without a real installation.
 
 **Non-Goals:**
-- Установка Homebrew: она интерактивна и требует прав администратора.
+- Installing Homebrew: it is interactive and requires administrator rights.
 
 ## Decisions
 
-### 1. Bash-скрипт в корне репозитория
+### 1. A Bash script in the repository root
 
-Установщик должен работать до того, как появится Python-окружение проекта, поэтому это `install.sh` на bash, совместимый с системным bash 3.2 из macOS.
+The installer must work before the project's Python environment exists, so it is `install.sh` in bash, compatible with the system bash 3.2 from macOS.
 
-### 2. Редактируемая установка на управляемом Python
+### 2. An editable install on a managed Python
 
-`uv tool install --editable <репозиторий> --python 3.12 --force` с `UV_PYTHON_PREFERENCE=only-managed`: правки в коде подхватываются без переустановки, а системный Python 3.9 на целевой машине `uv` запустить не может.
+`uv tool install --editable <repository> --python 3.12 --force` with `UV_PYTHON_PREFERENCE=only-managed`: changes to the code are picked up without reinstalling, and `uv` cannot run the system Python 3.9 on the target machine.
 
-### 3. PATH прописывается самим скриптом
+### 3. PATH is set up by the script itself
 
-Конфиг выбирается по `$SHELL`: zsh — `${ZDOTDIR:-$HOME}/.zshrc`, bash — `~/.bash_profile`, иначе `~/.profile`. Строка сопровождается комментарием-маркером, по которому определяется, что она уже дописана.
+The config is chosen by `$SHELL`: zsh — `${ZDOTDIR:-$HOME}/.zshrc`, bash — `~/.bash_profile`, otherwise `~/.profile`. The line is accompanied by a marker comment, which is used to determine that it has already been appended.
 
-Альтернатива — `uv tool update-shell`: делает то же, но его поведение нельзя детерминированно проверить в тестах. Отклонена.
+The alternative is `uv tool update-shell`: it does the same, but its behavior cannot be checked deterministically in tests. Rejected.
 
-### 4. Цвет в выводе `uv` отключается явно
+### 4. Color in `uv` output is disabled explicitly
 
-Путь запрашивается как `uv tool dir --bin --color never`. При `FORCE_COLOR` в окружении `uv` раскрашивает путь даже в подстановке команды; при первом реальном запуске это привело к записи управляющих последовательностей в `~/.zshrc`.
+The path is requested as `uv tool dir --bin --color never`. With `FORCE_COLOR` in the environment, `uv` colors the path even in a command substitution; on the first real run this led to control sequences being written to `~/.zshrc`.
 
-### 5. Тесты в песочнице с заглушками
+### 5. Tests in a sandbox with stubs
 
-`pytest` запускает скрипт с `PATH` из каталога заглушек и `/usr/bin:/bin`, временным `HOME` и подставными `brew`, `uv`, `uname`, которые журналируют вызовы. Заглушка `uv` раскрашивает путь так же, как настоящий, пока цвет не отключён.
+`pytest` runs the script with a `PATH` made of the stub directory and `/usr/bin:/bin`, a temporary `HOME` and fake `brew`, `uv`, `uname` that log their calls. The `uv` stub colors the path the same way the real one does until color is disabled.
 
 ## Risks / Trade-offs
 
-- [Заглушки расходятся с поведением настоящих инструментов] → скрипт дополнительно прогоняется на реальной машине; найденное расхождение (цвет) перенесено в заглушку.
-- [Скрипт изменяет конфиг оболочки пользователя] → только дописывает в конец, только когда каталога нет в `PATH`, и сообщает об этом.
+- [The stubs diverge from the behavior of the real tools] → the script is additionally run on a real machine; the divergence that was found (color) has been carried over into the stub.
+- [The script modifies the user's shell config] → it only appends to the end, only when the directory is not in `PATH`, and reports it.

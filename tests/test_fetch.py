@@ -14,7 +14,7 @@ class DownloadError(Exception):
 
 @pytest.fixture
 def ydl(monkeypatch):
-    """Подменяет модуль yt_dlp; возвращает объект для настройки ответов и чтения вызовов."""
+    """Replace the yt_dlp module; return an object to set responses and read calls."""
     state = types.SimpleNamespace(info={}, error=None, body=b"", calls=[])
 
     class YoutubeDL:

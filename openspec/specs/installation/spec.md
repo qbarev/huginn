@@ -1,71 +1,71 @@
 # installation Specification
 
 ## Purpose
-Устанавливает `huginn` и его зависимости одной командой так, чтобы команда `huginn` была доступна из любой директории.
+Installs `huginn` and its dependencies with a single command so that the `huginn` command is available from any directory.
 
 ## Requirements
 
-### Requirement: Проверка платформы
-Установщик SHALL работать только на Mac с Apple Silicon и SHALL завершаться с ошибкой на остальных платформах, ничего не устанавливая.
+### Requirement: Platform check
+The installer SHALL work only on a Mac with Apple Silicon and SHALL exit with an error on other platforms without installing anything.
 
-#### Scenario: Неподдерживаемая платформа
-- **WHEN** установщик запущен на Linux или на Mac с процессором Intel
-- **THEN** он сообщает, что поддерживается только Mac с Apple Silicon, завершается с ненулевым кодом и ничего не устанавливает
+#### Scenario: Unsupported platform
+- **WHEN** the installer is run on Linux or on a Mac with an Intel processor
+- **THEN** it reports that only a Mac with Apple Silicon is supported, exits with a non-zero code and installs nothing
 
-### Requirement: Установка системных зависимостей
-Установщик SHALL устанавливать через Homebrew те из зависимостей `uv` и `ffmpeg`, которых нет на машине, и SHALL NOT переустанавливать уже имеющиеся.
+### Requirement: Installing system dependencies
+The installer SHALL use Homebrew to install those of the dependencies `uv` and `ffmpeg` that are missing on the machine and SHALL NOT reinstall the ones already present.
 
-#### Scenario: Зависимостей нет
-- **WHEN** на машине нет ни `uv`, ни `ffmpeg`
-- **THEN** установщик ставит обе через Homebrew
+#### Scenario: No dependencies
+- **WHEN** the machine has neither `uv` nor `ffmpeg`
+- **THEN** the installer installs both with Homebrew
 
-#### Scenario: Часть зависимостей уже есть
-- **WHEN** `uv` установлен, а `ffmpeg` нет
-- **THEN** установщик ставит только `ffmpeg`
+#### Scenario: Some dependencies already present
+- **WHEN** `uv` is installed and `ffmpeg` is not
+- **THEN** the installer installs only `ffmpeg`
 
-#### Scenario: Все зависимости уже есть
-- **WHEN** `uv` и `ffmpeg` установлены
-- **THEN** установщик не обращается к Homebrew
+#### Scenario: All dependencies already present
+- **WHEN** `uv` and `ffmpeg` are installed
+- **THEN** the installer does not call Homebrew
 
-#### Scenario: Нет Homebrew
-- **WHEN** зависимости отсутствуют и Homebrew не установлен
-- **THEN** установщик сообщает, что нужен Homebrew и где его взять, завершается с ненулевым кодом и не изменяет конфиг оболочки
+#### Scenario: No Homebrew
+- **WHEN** dependencies are missing and Homebrew is not installed
+- **THEN** the installer reports that Homebrew is needed and where to get it, exits with a non-zero code and does not change the shell config
 
-### Requirement: Установка команды
-Установщик SHALL устанавливать команду `huginn` из каталога репозитория, в котором лежит сам, и SHALL проверять, что установленная команда запускается.
+### Requirement: Installing the command
+The installer SHALL install the `huginn` command from the repository directory in which it is located and SHALL verify that the installed command runs.
 
-#### Scenario: Успешная установка
-- **WHEN** зависимости на месте
-- **THEN** команда `huginn` установлена из этого репозитория и установщик завершается с нулевым кодом
+#### Scenario: Successful install
+- **WHEN** the dependencies are in place
+- **THEN** the `huginn` command is installed from this repository and the installer exits with a zero code
 
-#### Scenario: Команда не запускается
-- **WHEN** после установки команда `huginn` не запускается
-- **THEN** установщик сообщает об этом и завершается с ненулевым кодом
+#### Scenario: Command does not run
+- **WHEN** the `huginn` command does not run after installation
+- **THEN** the installer reports it and exits with a non-zero code
 
-### Requirement: Настройка PATH
-Когда каталог установленной команды отсутствует в `PATH`, установщик SHALL дописать его в конфиг оболочки пользователя, не изменяя остального содержимого файла, и SHALL NOT изменять конфиг, когда каталог уже в `PATH`.
+### Requirement: PATH setup
+When the directory of the installed command is not on `PATH`, the installer SHALL append it to the user's shell config without changing the rest of the file, and SHALL NOT change the config when the directory is already on `PATH`.
 
-#### Scenario: Каталога нет в PATH
-- **WHEN** оболочка пользователя — zsh и каталога команды нет в `PATH`
-- **THEN** в `.zshrc` дописана строка, после которой `huginn` находится в новой сессии оболочки
-- **AND** прежнее содержимое файла сохранено
-- **AND** установщик сообщает, как применить изменение
+#### Scenario: Directory not on PATH
+- **WHEN** the user's shell is zsh and the command directory is not on `PATH`
+- **THEN** a line is appended to `.zshrc` after which `huginn` is found in a new shell session
+- **AND** the previous contents of the file are preserved
+- **AND** the installer says how to apply the change
 
-#### Scenario: Каталог уже в PATH
-- **WHEN** каталог команды уже в `PATH`
-- **THEN** конфиг оболочки не изменяется
+#### Scenario: Directory already on PATH
+- **WHEN** the command directory is already on `PATH`
+- **THEN** the shell config is not changed
 
-#### Scenario: Другая оболочка
-- **WHEN** оболочка пользователя — bash
-- **THEN** строка дописывается в `.bash_profile`
+#### Scenario: Another shell
+- **WHEN** the user's shell is bash
+- **THEN** the line is appended to `.bash_profile`
 
-#### Scenario: Раскрашенный вывод инструментов
-- **WHEN** в окружении принудительно включён цветной вывод
-- **THEN** строка в конфиге оболочки содержит только путь, без управляющих последовательностей
+#### Scenario: Colourised tool output
+- **WHEN** coloured output is forced in the environment
+- **THEN** the line in the shell config contains only the path, without control sequences
 
-### Requirement: Безопасный повторный запуск
-Повторный запуск установщика SHALL завершаться успешно и SHALL NOT дублировать записи в конфиге оболочки.
+### Requirement: Safe re-run
+Running the installer again SHALL succeed and SHALL NOT duplicate entries in the shell config.
 
-#### Scenario: Второй запуск
-- **WHEN** установщик запущен второй раз подряд
-- **THEN** он завершается с нулевым кодом и в конфиге оболочки остаётся одна запись о `PATH`
+#### Scenario: Second run
+- **WHEN** the installer is run a second time in a row
+- **THEN** it exits with a zero code and the shell config still has one `PATH` entry

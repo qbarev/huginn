@@ -5,7 +5,7 @@ from huginn.models import SourceError
 from huginn.subtitles import Track
 
 class _Silent:
-    """yt-dlp пишет ошибки в stderr сам; причина и так попадает в сводку."""
+    """yt-dlp prints errors to stderr itself; the reason already goes into the summary."""
 
     def debug(self, message: str) -> None: ...
     def warning(self, message: str) -> None: ...
@@ -31,7 +31,7 @@ def _reason(error: Exception) -> str:
 
 
 class Fetcher:
-    """Вся работа с сетью через yt-dlp: метаданные, субтитры, аудиодорожка."""
+    """All network access through yt-dlp: metadata, subtitles, audio track."""
 
     def probe(self, url: str) -> MediaInfo:
         import yt_dlp
@@ -54,7 +54,7 @@ class Fetcher:
         )
 
     def subtitles(self, info: MediaInfo, track: Track) -> str | None:
-        """Возвращает текст дорожки в формате VTT или None, если платформа его не отдаёт."""
+        """Return the track as VTT text, or None if the platform does not offer VTT."""
         import yt_dlp
 
         formats = (info.automatic if track.automatic else info.subtitles).get(track.key) or []

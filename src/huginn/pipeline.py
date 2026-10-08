@@ -34,7 +34,7 @@ class Pipeline:
         self.check_ffmpeg = check_ffmpeg
 
     def process(self, item: Item) -> Result:
-        """Обрабатывает один источник; любая ошибка становится результатом, а не исключением."""
+        """Process one source; any error becomes a result, not an exception."""
         self.log(f"→ {item.value}")
         try:
             if item.kind == "url":

@@ -2,123 +2,123 @@
 
 ## Context
 
-Проект создаётся с нуля: в репозитории только каркас OpenSpec. Мотивация — в `proposal.md`, требования — в `specs/media-transcription/spec.md`.
+The project is created from scratch: the repository contains only the OpenSpec scaffold. The motivation is in `proposal.md`, the requirements are in `specs/media-transcription/spec.md`.
 
-Ограничения, определяющие подход:
+Constraints that shape the approach:
 
-- Целевая машина — Apple M1, 16 ГБ, macOS. Другие платформы не требуются.
-- Главное требование — скорость: текст должен появляться намного быстрее, чем длится медиа.
-- Материал — русский и английский, от коротких роликов до записей на 1–3 часа.
-- На машине есть Node 22, Homebrew и системный Python 3.9.6; нет `uv`, `ffmpeg`, `yt-dlp`, Whisper.
+- The target machine is an Apple M1, 16 GB, macOS. Other platforms are not required.
+- The main requirement is speed: the text must appear much faster than the media lasts.
+- The material is Russian and English, from short clips to recordings of 1–3 hours.
+- The machine has Node 22, Homebrew and the system Python 3.9.6; it has no `uv`, `ffmpeg`, `yt-dlp` or Whisper.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Для ссылок с субтитрами — результат за секунды, без скачивания медиа.
-- Для остального — локальное распознавание в разы быстрее реального времени.
-- Каждый модуль тестируется без сети и без модели.
-- Движок распознавания заменяем без правок остального кода.
+- For links with subtitles — a result in seconds, without downloading the media.
+- For everything else — local recognition several times faster than real time.
+- Every module is tested without the network and without the model.
+- The recognition engine is replaceable without changes to the rest of the code.
 
 **Non-Goals:**
 
-- Переносимость на Linux, Windows и Intel Mac.
-- Параллельная обработка нескольких источников: распознавание и так занимает GPU целиком.
-- Конфигурационный файл: все настройки — флаги командной строки.
+- Portability to Linux, Windows and Intel Macs.
+- Parallel processing of several sources: recognition already occupies the whole GPU.
+- A configuration file: all settings are command-line flags.
 
 ## Decisions
 
-### 1. Две ступени: субтитры платформы, затем Whisper
+### 1. Two stages: platform subtitles, then Whisper
 
-Для ссылки сначала запрашиваются метаданные и субтитры; распознавание запускается, только если субтитров нет или задан `--whisper`.
+For a link, metadata and subtitles are requested first; recognition is started only if there are no subtitles or `--whisper` is set.
 
-Почему: никакой локальный движок не обгонит готовый текст. Это единственный способ получить скрининг часового видео за секунды.
+Why: no local engine can outrun ready-made text. This is the only way to screen an hour-long video in seconds.
 
-Альтернатива — всегда распознавать: стабильное качество, но минуты ожидания на каждое видео. Отклонена как противоречащая цели; оставлена как явный выбор через `--whisper`.
+The alternative is to always recognize: stable quality, but minutes of waiting for every video. Rejected as contradicting the goal; kept as an explicit choice via `--whisper`.
 
-### 2. Движок распознавания — `mlx-whisper`, модель `large-v3-turbo`
+### 2. Recognition engine — `mlx-whisper`, model `large-v3-turbo`
 
-Почему: считает на GPU Apple Silicon через MLX, вызывается как функция Python и возвращает сегменты с таймкодами. `large-v3-turbo` даёт приемлемый русский при скорости заметно выше `large-v3`.
+Why: it computes on the Apple Silicon GPU via MLX, is called as a Python function and returns segments with timecodes. `large-v3-turbo` gives acceptable Russian at a speed noticeably higher than `large-v3`.
 
-Альтернативы:
+Alternatives:
 
-- `openai/whisper` (PyTorch) — эталон, но на M1 считает на CPU, скорость порядка реального времени. Отклонён.
-- `whisper.cpp` — сопоставимая скорость через Metal, но это внешний бинарник: отдельная установка, отдельная загрузка моделей, разбор его вывода. Отклонён ради простоты.
-- `faster-whisper` — на Mac только CPU. Отклонён.
+- `openai/whisper` (PyTorch) — the reference, but on an M1 it computes on the CPU, at a speed of about real time. Rejected.
+- `whisper.cpp` — comparable speed via Metal, but it is an external binary: a separate installation, separate model downloads, parsing its output. Rejected for the sake of simplicity.
+- `faster-whisper` — CPU only on a Mac. Rejected.
 
-Флаг `--model` принимает короткие имена `turbo` (по умолчанию), `large-v3`, `small` и сопоставляет их с репозиториями `mlx-community` на Hugging Face; любое другое значение передаётся как имя репозитория без изменений.
+The `--model` flag accepts the short names `turbo` (the default), `large-v3`, `small` and maps them to `mlx-community` repositories on Hugging Face; any other value is passed through unchanged as a repository name.
 
-### 3. Транскрибатор за узким интерфейсом
+### 3. The transcriber behind a narrow interface
 
-Остальной код знает только протокол: «путь к аудио, язык или `None` → язык и список сегментов (`start`, `end`, `text`)». Реализация на `mlx-whisper` — единственная, импортируется лениво.
+The rest of the code knows only the protocol: "path to audio, language or `None` → language and a list of segments (`start`, `end`, `text`)". The `mlx-whisper` implementation is the only one and is imported lazily.
 
-Почему: тесты подставляют заглушку и не требуют модели; при смене железа второй бэкенд добавляется одним файлом. Субтитры приводятся к тому же списку сегментов, поэтому рендер один для обеих ступеней.
+Why: tests substitute a stub and do not need the model; if the hardware changes, a second backend is added with a single file. Subtitles are converted to the same list of segments, so there is one renderer for both stages.
 
-### 4. Субтитры — формат VTT с собственной очисткой
+### 4. Subtitles — the VTT format with custom cleanup
 
-Субтитры запрашиваются через `yt-dlp` в формате VTT и разбираются своим парсером: снимаются теги тайминга и стилей, убираются «прокручивающиеся» повторы строк, характерные для автоматических субтитров YouTube.
+Subtitles are requested via `yt-dlp` in the VTT format and parsed by a custom parser: timing and style tags are stripped, and the "scrolling" line repeats typical of YouTube automatic subtitles are removed.
 
-Альтернатива — формат `json3` YouTube: чище, но специфичен для одной платформы. Отклонён: VTT отдают все платформы, которые поддерживает `yt-dlp`.
+The alternative is YouTube's `json3` format: cleaner, but specific to one platform. Rejected: VTT is served by all the platforms that `yt-dlp` supports.
 
-Выбор дорожки: язык берётся из `--lang`, иначе из поля языка в метаданных; среди дорожек на этом языке авторская предпочитается автоматической. Если язык неизвестен и авторская дорожка ровно одна — берётся она. Иначе ссылка уходит на вторую ступень.
+Track selection: the language is taken from `--lang`, otherwise from the language field in the metadata; among the tracks in that language, an authored one is preferred over an automatic one. If the language is unknown and there is exactly one authored track, that one is taken. Otherwise the link goes to the second stage.
 
-### 5. `yt-dlp` как библиотека, `ffmpeg` как системная зависимость
+### 5. `yt-dlp` as a library, `ffmpeg` as a system dependency
 
-`yt-dlp` подключается как Python-зависимость и вызывается через API: метаданные, субтитры и аудиодорожка без обработки (`bestaudio`, без перекодирования).
+`yt-dlp` is included as a Python dependency and called via its API: metadata, subtitles and the audio track without processing (`bestaudio`, no re-encoding).
 
-`ffmpeg` нужен только самому `mlx-whisper` для декодирования звука, поэтому отдельного шага конвертации нет: локальный файл и скачанная дорожка передаются в транскрибатор как есть. Наличие `ffmpeg` проверяется непосредственно перед первой задачей, требующей распознавания, — путь через субтитры работает и без него.
+`ffmpeg` is needed only by `mlx-whisper` itself to decode audio, so there is no separate conversion step: a local file and a downloaded track are passed to the transcriber as is. The presence of `ffmpeg` is checked immediately before the first task that requires recognition — the subtitle path works without it too.
 
-Скачанное аудио кладётся во временную директорию и удаляется после обработки источника.
+Downloaded audio is placed in a temporary directory and deleted after the source is processed.
 
-### 6. Абзацы и таймкоды
+### 6. Paragraphs and timecodes
 
-Сегменты склеиваются в абзац, пока не выполнится одно из условий: пауза до следующего сегмента не меньше 2 секунд либо абзац длится уже 60 секунд. Числа — константы модуля рендера.
+Segments are joined into a paragraph until one of the conditions is met: the pause before the next segment is at least 2 seconds, or the paragraph has already lasted 60 seconds. The numbers are constants of the render module.
 
-Почему два условия: в автоматических субтитрах пауз почти нет, и без ограничения по длительности получился бы один абзац на всё видео.
+Why two conditions: automatic subtitles have almost no pauses, and without a duration limit there would be one paragraph for the whole video.
 
-Таймкод — `[MM:SS]`, для медиа от часа — `[H:MM:SS]`. Кликабельным он делается только для YouTube (`&t=<секунды>s`): для прочих платформ единого способа сослаться на момент нет.
+The timecode is `[MM:SS]`, and `[H:MM:SS]` for media of an hour or longer. It is made clickable only for YouTube (`&t=<seconds>s`): for other platforms there is no single way to link to a moment.
 
-### 7. Имена файлов и пропуск готовых
+### 7. File names and skipping finished ones
 
-- Локальный файл: `<имя файла без расширения>.md`.
-- Ссылка: `<название, приведённое к безопасному виду>-<идентификатор медиа>.md`. Идентификатор исключает коллизии одинаковых названий.
+- Local file: `<file name without extension>.md`.
+- Link: `<title converted to a safe form>-<media identifier>.md`. The identifier rules out collisions between identical titles.
 
-Проверка «уже готово» для ссылки требует запроса метаданных (несколько секунд), но выполняется до скачивания и распознавания.
+The "already done" check for a link requires a metadata request (a few seconds), but is performed before downloading and recognition.
 
-### 8. Стек и раскладка
+### 8. Stack and layout
 
-Python 3.12 под управлением `uv`, раскладка `src/huginn/`, точка входа `huginn`, разбор аргументов — `argparse` из стандартной библиотеки, тесты — `pytest`.
+Python 3.12 managed by `uv`, the `src/huginn/` layout, the `huginn` entry point, argument parsing with `argparse` from the standard library, tests with `pytest`.
 
-| Модуль | Ответственность | Зависит от |
+| Module | Responsibility | Depends on |
 |---|---|---|
-| `sources` | Аргументы → список элементов (ссылка или файл) | файловая система |
-| `subtitles` | Выбор дорожки, разбор и очистка VTT → сегменты | — (сеть в `fetch`) |
-| `fetch` | Обёртка над `yt-dlp`: метаданные, субтитры, аудио | `yt-dlp` |
-| `transcriber` | Протокол и реализация на `mlx-whisper` | `mlx-whisper` |
-| `render` | Сегменты → абзацы → Markdown | — |
-| `pipeline` | Обработка одного элемента: выбор ступени, пропуск, запись | всё выше |
-| `cli` | Аргументы, прогресс в stderr, сводка, код выхода | `pipeline` |
+| `sources` | Arguments → a list of items (link or file) | the file system |
+| `subtitles` | Track selection, VTT parsing and cleanup → segments | — (the network is in `fetch`) |
+| `fetch` | A wrapper around `yt-dlp`: metadata, subtitles, audio | `yt-dlp` |
+| `transcriber` | The protocol and the `mlx-whisper` implementation | `mlx-whisper` |
+| `render` | Segments → paragraphs → Markdown | — |
+| `pipeline` | Processing a single item: stage selection, skipping, writing | everything above |
+| `cli` | Arguments, progress to stderr, summary, exit code | `pipeline` |
 
-По сравнению с согласованным в чате дизайном модуль `audio` заменён на `fetch`: конвертация звука не понадобилась (решение 5), а вся работа с сетью собрана в одном месте, которое подменяется в тестах.
+Compared with the design agreed in chat, the `audio` module is replaced by `fetch`: audio conversion turned out not to be needed (decision 5), and all work with the network is gathered in one place, which is replaced in tests.
 
-### 9. Замер скорости — первым шагом
+### 9. Speed measurement — as the first step
 
-До написания пайплайна выполняется замер `mlx-whisper` с `large-v3-turbo` на реальной часовой записи на этой машине. Ожидание — 5–10 минут на час, но это оценка, а не измерение.
+Before the pipeline is written, `mlx-whisper` with `large-v3-turbo` is measured on a real hour-long recording on this machine. The expectation is 5–10 minutes per hour, but that is an estimate, not a measurement.
 
-Результат замера (Apple M1, 16 ГБ, запись 58 минут на русском, модель `mlx-community/whisper-large-v3-turbo`): 6 минут 34 секунды через `huginn --whisper` вместе с загрузкой аудиодорожки, то есть примерно в 9 раз быстрее реального времени. Порог пройден, модель по умолчанию — `turbo`. Имена репозиториев `mlx-community/whisper-large-v3-mlx` и `mlx-community/whisper-small-mlx` подтверждены загрузкой и распознаванием минутного фрагмента.
+Measurement result (Apple M1, 16 GB, a 58-minute recording in Russian, model `mlx-community/whisper-large-v3-turbo`): 6 minutes 34 seconds via `huginn --whisper` including the audio track download, that is, roughly 9 times faster than real time. The threshold is passed, the default model is `turbo`. The repository names `mlx-community/whisper-large-v3-mlx` and `mlx-community/whisper-small-mlx` were confirmed by downloading them and recognizing a one-minute fragment.
 
-Порог: если распознавание часа занимает больше 12 минут (медленнее 5× реального времени), работа останавливается и решение о модели по умолчанию принимается вместе с пользователем (`small` быстрее, но хуже на русском).
+Threshold: if recognizing an hour takes more than 12 minutes (slower than 5× real time), work stops and the decision on the default model is made together with the user (`small` is faster but worse on Russian).
 
 ## Risks / Trade-offs
 
-- [Автоматические субтитры на русском без пунктуации и заглавных букв] → абзацы по длительности делают текст читаемым; в шапке указано происхождение текста; `--whisper` даёт аккуратный текст.
-- [Скорость Whisper на M1 не измерена] → замер первым шагом с порогом остановки (решение 9).
-- [Платформы меняют защиту, `yt-dlp` перестаёт работать] → ошибка источника не роняет пакет; обновление — `uv lock --upgrade-package yt-dlp`, описано в README.
-- [Язык медиа не указан в метаданных и субтитры не выбираются] → ссылка уходит на распознавание; пользователь может задать `--lang`.
-- [Имена репозиториев моделей `mlx-community` могут отличаться от ожидаемых] → проверяются при замере скорости до того, как попадут в код.
-- [Первый запуск распознавания качает модель около 1.5 ГБ] → сообщение о загрузке в прогрессе; описано в README.
-- [Инструмент работает только на Apple Silicon] → принято осознанно; интерфейс транскрибатора оставляет путь к другому бэкенду.
+- [Automatic subtitles in Russian have no punctuation or capital letters] → paragraphs by duration make the text readable; the header states the origin of the text; `--whisper` gives tidy text.
+- [Whisper speed on the M1 has not been measured] → a measurement as the first step with a stop threshold (decision 9).
+- [Platforms change their protection, `yt-dlp` stops working] → a source error does not bring down the batch; the update is `uv lock --upgrade-package yt-dlp`, described in the README.
+- [The media language is not specified in the metadata and no subtitles are selected] → the link goes to recognition; the user can set `--lang`.
+- [The `mlx-community` model repository names may differ from the expected ones] → they are checked during the speed measurement before they get into the code.
+- [The first recognition run downloads a model of about 1.5 GB] → a download message in the progress output; described in the README.
+- [The tool works only on Apple Silicon] → accepted deliberately; the transcriber interface leaves a path to another backend.
 
 ## Open Questions
 
-Нет.
+None.

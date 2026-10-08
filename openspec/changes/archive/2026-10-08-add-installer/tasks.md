@@ -1,12 +1,12 @@
 # Tasks
 
-## 1. Установщик
+## 1. Installer
 
-- [x] 1.1 Написать `install.sh`: проверка платформы, зависимости через Homebrew, установка команды, PATH, проверка запуска; проверка: тесты `tests/test_install.py` на каждый сценарий спецификации проходят
-- [x] 1.2 Отключить цвет в выводе `uv` при запросе каталога команд; проверка: тест с раскрашивающей заглушкой `uv` проходит, а без исправления падает
-- [x] 1.3 Обновить README: установка через `./install.sh`, запуск без `uv run`; проверка: команды из README выполняются как написано
+- [x] 1.1 Write `install.sh`: platform check, dependencies via Homebrew, installing the command, PATH, checking that it runs; verify: the `tests/test_install.py` tests for every scenario of the specification pass
+- [x] 1.2 Disable color in `uv` output when requesting the command directory; verify: the test with a coloring `uv` stub passes, and fails without the fix
+- [x] 1.3 Update the README: installation via `./install.sh`, running without `uv run`; verify: the commands from the README run as written
 
-## 2. Сквозная проверка
+## 2. End-to-end verification
 
-- [x] 2.1 Запустить `./install.sh` на реальной машине дважды; проверка: оба запуска завершаются с кодом 0, `huginn --help` работает из другой директории, конфиг оболочки не изменён
-- [x] 2.2 Выполнить `openspec validate add-installer --strict`; проверка: валидация проходит
+- [x] 2.1 Run `./install.sh` on a real machine twice; verify: both runs finish with exit code 0, `huginn --help` works from another directory, the shell config is not modified
+- [x] 2.2 Run `openspec validate add-installer --strict`; verify: the validation passes

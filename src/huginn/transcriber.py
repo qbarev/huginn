@@ -26,7 +26,7 @@ class Transcriber(Protocol):
 
 
 def resolve_model(name: str) -> str:
-    """Короткое имя модели → репозиторий Hugging Face; прочие значения передаются как есть."""
+    """Map a short model name to its Hugging Face repository; other values pass through."""
     return MODELS.get(name, name)
 
 
