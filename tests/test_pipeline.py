@@ -8,13 +8,13 @@ from huginn.pipeline import Options, Pipeline
 from huginn.transcriber import Transcript
 
 URL = "https://www.youtube.com/watch?v=abc"
-VTT = "WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nтекст субтитров\n"
+VTT = "WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nsubtitle text\n"
 
 
 class FakeFetcher:
     def __init__(self, manual=(), automatic=(), language="ru", vtt=VTT, error=None):
         self.info = MediaInfo(
-            id="abc", title="Доклад", url=URL, duration=600, language=language,
+            id="abc", title="Talk", url=URL, duration=600, language=language,
             subtitles={k: [] for k in manual}, automatic={k: [] for k in automatic},
         )
         self.vtt = vtt
@@ -41,7 +41,7 @@ class FakeFetcher:
 class FakeTranscriber:
     label = "Whisper test"
 
-    def __init__(self, segments=(Segment(0, 2, "Распознанный текст."),), language="ru", error=None):
+    def __init__(self, segments=(Segment(0, 2, "Recognised text."),), language="ru", error=None):
         self.segments = list(segments)
         self.language = language
         self.error = error
@@ -64,7 +64,7 @@ def make(tmp_path, fetcher=None, transcriber=None, ffmpeg=lambda: None, **option
 
 
 def no_ffmpeg():
-    raise SourceError("не найден ffmpeg — установите: brew install ffmpeg")
+    raise SourceError("ffmpeg not found — install it: brew install ffmpeg")
 
 
 def test_manual_subtitles_are_used_without_recognition(tmp_path):
@@ -74,15 +74,15 @@ def test_manual_subtitles_are_used_without_recognition(tmp_path):
     assert not fetcher.tracks[0].automatic
     assert transcriber.calls == [] and fetcher.audio_dirs == []
     text = Path(result.path).read_text()
-    assert "- Получено: субтитры платформы (авторские)" in text
-    assert "[[00:01]](https://youtu.be/abc?t=1) текст субтитров" in text
+    assert "- Obtained via: platform subtitles (authored)" in text
+    assert "[[00:01]](https://youtu.be/abc?t=1) subtitle text" in text
 
 
 def test_automatic_subtitles_are_labelled(tmp_path):
     pipeline, _, transcriber, _ = make(tmp_path, FakeFetcher(automatic=["ru", "ru-orig"]))
     result = pipeline.process(Item("url", URL))
     assert transcriber.calls == []
-    assert "- Получено: субтитры платформы (автоматические)" in Path(result.path).read_text()
+    assert "- Obtained via: platform subtitles (automatic)" in Path(result.path).read_text()
 
 
 def test_url_without_subtitles_is_recognised_and_audio_removed(tmp_path):
@@ -92,8 +92,8 @@ def test_url_without_subtitles_is_recognised_and_audio_removed(tmp_path):
     assert len(transcriber.calls) == 1 and transcriber.calls[0][1] is None
     assert not fetcher.audio_dirs[0].exists()
     text = Path(result.path).read_text()
-    assert "- Получено: Whisper test" in text and "Распознанный текст." in text
-    assert any("распознавание речи: Whisper test" in line for line in log)
+    assert "- Obtained via: Whisper test" in text and "Recognised text." in text
+    assert any("speech recognition: Whisper test" in line for line in log)
     assert log[0] == f"→ {URL}"
 
 
@@ -115,19 +115,19 @@ def test_language_option_is_passed_to_recognition(tmp_path):
     pipeline, _, transcriber, _ = make(tmp_path, language="en")
     result = pipeline.process(Item("file", str(media)))
     assert transcriber.calls == [(media, "en")]
-    assert "- Язык: en" in Path(result.path).read_text()
+    assert "- Language: en" in Path(result.path).read_text()
 
 
 def test_local_file_is_recognised(tmp_path):
-    media = tmp_path / "Моя лекция.mp4"
+    media = tmp_path / "Meine Übung.mp4"
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path)
     result = pipeline.process(Item("file", str(media)))
-    assert result.path == str(tmp_path / "out" / "Моя лекция.md")
+    assert result.path == str(tmp_path / "out" / "Meine Übung.md")
     text = Path(result.path).read_text()
-    assert text.startswith("# Моя лекция\n")
-    assert f"- Источник: {media.resolve()}" in text
-    assert "[00:00] Распознанный текст." in text
+    assert text.startswith("# Meine Übung\n")
+    assert f"- Source: {media.resolve()}" in text
+    assert "[00:00] Recognised text." in text
 
 
 def test_existing_transcript_is_skipped(tmp_path):
@@ -135,11 +135,11 @@ def test_existing_transcript_is_skipped(tmp_path):
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path)
     first = pipeline.process(Item("file", str(media)))
-    Path(first.path).write_text("правки пользователя")
+    Path(first.path).write_text("user edits")
     second = pipeline.process(Item("file", str(media)))
     assert second.status == "skipped" and second.path == first.path
     assert len(transcriber.calls) == 1
-    assert Path(first.path).read_text() == "правки пользователя"
+    assert Path(first.path).read_text() == "user edits"
 
 
 def test_existing_url_transcript_is_skipped_before_download(tmp_path):
@@ -154,9 +154,9 @@ def test_force_recreates_transcript(tmp_path):
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path, force=True)
     first = pipeline.process(Item("file", str(media)))
-    Path(first.path).write_text("старое")
+    Path(first.path).write_text("old")
     assert pipeline.process(Item("file", str(media))).status == "created"
-    assert "Распознанный текст." in Path(first.path).read_text()
+    assert "Recognised text." in Path(first.path).read_text()
 
 
 def test_no_speech_fails_without_file(tmp_path):
@@ -164,7 +164,7 @@ def test_no_speech_fails_without_file(tmp_path):
     media.touch()
     pipeline, _, _, _ = make(tmp_path, transcriber=FakeTranscriber(segments=[Segment(0, 1, "  ")]))
     result = pipeline.process(Item("file", str(media)))
-    assert (result.status, result.reason) == ("failed", "речь не найдена")
+    assert (result.status, result.reason) == ("failed", "no speech found")
     assert not (tmp_path / "out" / "silence.md").exists()
 
 

@@ -48,5 +48,5 @@ class MlxWhisper:
 def require_ffmpeg(which: Callable[[str], str | None] = shutil.which) -> None:
     if which("ffmpeg") is None:
         raise SourceError(
-            "не найден ffmpeg — он нужен для распознавания речи; установите: brew install ffmpeg"
+            "ffmpeg not found — it is needed for speech recognition; install it: brew install ffmpeg"
         )

@@ -70,11 +70,11 @@ def render(meta: Meta, segments: list[Segment]) -> str:
         duration = segments[-1].end
     with_hours = duration is not None and duration >= 3600
 
-    lines = [f"# {meta.title}", "", f"- Источник: {meta.source}"]
+    lines = [f"# {meta.title}", "", f"- Source: {meta.source}"]
     if duration is not None:
-        lines.append(f"- Длительность: {timecode(duration, with_hours)}")
-    lines.append(f"- Язык: {meta.language or 'не определён'}")
-    lines.append(f"- Получено: {meta.method}")
+        lines.append(f"- Duration: {timecode(duration, with_hours)}")
+    lines.append(f"- Language: {meta.language or 'unknown'}")
+    lines.append(f"- Obtained via: {meta.method}")
 
     for paragraph in paragraphs(segments):
         stamp = f"[{timecode(paragraph.start, with_hours)}]"

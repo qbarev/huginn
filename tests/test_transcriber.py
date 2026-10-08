@@ -18,7 +18,7 @@ def test_label_names_the_model():
 
 
 def test_missing_ffmpeg_explains_how_to_install():
-    with pytest.raises(SourceError, match="не найден ffmpeg.*brew install ffmpeg"):
+    with pytest.raises(SourceError, match="ffmpeg not found.*brew install ffmpeg"):
         require_ffmpeg(which=lambda name: None)
 
 

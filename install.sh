@@ -8,11 +8,11 @@ PYTHON_VERSION="3.12"
 PATH_MARKER="# huginn: uv tool bin directory"
 
 say() { printf '%s\n' "$*"; }
-fail() { printf 'Ошибка: %s\n' "$*" >&2; exit 1; }
+fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
 check_platform() {
     if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
-        fail "huginn работает только на Mac с Apple Silicon (обнаружено: $(uname -s) $(uname -m))"
+        fail "huginn works only on a Mac with Apple Silicon (detected: $(uname -s) $(uname -m))"
     fi
 }
 
@@ -21,7 +21,7 @@ install_dependencies() {
     local tool
     for tool in uv ffmpeg; do
         if command -v "$tool" >/dev/null 2>&1; then
-            say "✓ $tool уже установлен"
+            say "✓ $tool is already installed"
         else
             missing+=("$tool")
         fi
@@ -30,14 +30,14 @@ install_dependencies() {
         return
     fi
     if ! command -v brew >/dev/null 2>&1; then
-        fail "не найден Homebrew — он нужен для установки: ${missing[*]}. Установите его с https://brew.sh и запустите установщик снова"
+        fail "Homebrew not found — it is needed to install: ${missing[*]}. Install it from https://brew.sh and run the installer again"
     fi
     say "→ brew install ${missing[*]}"
     brew install "${missing[@]}"
 }
 
 install_command() {
-    say "→ установка команды huginn"
+    say "→ installing the huginn command"
     UV_PYTHON_PREFERENCE=only-managed \
         uv tool install --editable "$REPO_DIR" --python "$PYTHON_VERSION" --force
 }
@@ -54,19 +54,19 @@ ensure_path() {
     local bin_dir="$1"
     case ":$PATH:" in
         *":$bin_dir:"*)
-            say "✓ $bin_dir уже в PATH"
+            say "✓ $bin_dir is already on PATH"
             return
             ;;
     esac
     local rc
     rc="$(shell_rc_file)"
     if [ -f "$rc" ] && grep -qF "$PATH_MARKER" "$rc"; then
-        say "✓ PATH уже прописан в $rc"
+        say "✓ PATH is already set in $rc"
     else
         printf '\n%s\nexport PATH="%s:$PATH"\n' "$PATH_MARKER" "$bin_dir" >>"$rc"
-        say "→ PATH прописан в $rc"
+        say "→ PATH added to $rc"
     fi
-    say "  Откройте новый терминал или выполните: source $rc"
+    say "  Open a new terminal or run: source $rc"
 }
 
 main() {
@@ -80,9 +80,9 @@ main() {
     ensure_path "$bin_dir"
 
     if ! "$bin_dir/huginn" --help >/dev/null 2>&1; then
-        fail "команда $bin_dir/huginn не запускается после установки"
+        fail "the command $bin_dir/huginn does not run after installation"
     fi
-    say "Готово. Проверка: huginn --help"
+    say "Done. Check: huginn --help"
 }
 
 main "$@"

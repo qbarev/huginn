@@ -49,12 +49,12 @@ def ydl(monkeypatch):
 
 def test_probe_maps_metadata(ydl):
     ydl.info = {
-        "id": "abc", "title": "Доклад", "duration": 600, "language": "ru",
+        "id": "abc", "title": "Talk", "duration": 600, "language": "ru",
         "subtitles": {"ru": [{"ext": "vtt", "url": "u"}]}, "automatic_captions": {"ru-orig": []},
     }
     info = Fetcher().probe("https://example.com/v")
     assert (info.id, info.title, info.url, info.duration, info.language) == (
-        "abc", "Доклад", "https://example.com/v", 600, "ru")
+        "abc", "Talk", "https://example.com/v", 600, "ru")
     assert list(info.subtitles) == ["ru"] and list(info.automatic) == ["ru-orig"]
     _, url, download, options = ydl.calls[0]
     assert (url, download) == ("https://example.com/v", False)
@@ -63,7 +63,7 @@ def test_probe_maps_metadata(ydl):
 
 def test_probe_rejects_playlists(ydl):
     ydl.info = {"_type": "playlist", "id": "PL1"}
-    with pytest.raises(SourceError, match="плейлисты"):
+    with pytest.raises(SourceError, match="playlists"):
         Fetcher().probe("https://example.com/list")
 
 

@@ -21,9 +21,9 @@ def test_summary_lists_created_skipped_and_failed():
         Result("c", "failed", reason="Video unavailable"),
     ])
     assert text == (
-        "Создано: 1\n  out/a.md\n"
-        "Пропущено (уже готово): 1\n  out/b.md\n"
-        "Не удалось: 1\n  c — Video unavailable"
+        "Created: 1\n  out/a.md\n"
+        "Skipped (already done): 1\n  out/b.md\n"
+        "Failed: 1\n  c — Video unavailable"
     )
 
 
@@ -43,8 +43,8 @@ def test_one_failure_does_not_stop_the_batch(monkeypatch, capsys):
     code = cli.main(["https://x/1", "https://x/bad", "https://x/3", "/no/such/file.mp4"])
     out, err = capsys.readouterr()
     assert code == 1
-    assert "Создано: 2\n  out/1.md\n  out/3.md" in out
-    assert "/no/such/file.mp4 — путь не существует" in out
+    assert "Created: 2\n  out/1.md\n  out/3.md" in out
+    assert "/no/such/file.mp4 — path does not exist" in out
     assert "https://x/bad — Video unavailable" in out
     assert err.splitlines() == ["→ https://x/1", "→ https://x/bad", "→ https://x/3"]
 
@@ -52,4 +52,4 @@ def test_one_failure_does_not_stop_the_batch(monkeypatch, capsys):
 def test_exit_code_zero_when_everything_done(monkeypatch, capsys):
     monkeypatch.setattr(cli, "Pipeline", StubPipeline)
     assert cli.main(["https://x/1"]) == 0
-    assert capsys.readouterr().out == "Создано: 1\n  out/1.md\n"
+    assert capsys.readouterr().out == "Created: 1\n  out/1.md\n"

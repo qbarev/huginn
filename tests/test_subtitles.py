@@ -17,11 +17,11 @@ def test_manual_subtitles_lose_markup():
 def test_youtube_auto_subtitles_lose_rolling_repeats():
     segments = parse_vtt((DATA / "youtube_auto.vtt").read_text())
     assert [s.text for s in segments] == [
-        "[аплодисменты]",
-        "добрый день но я всегда стараюсь",
-        "построить нашу встречу чтобы это не была",
-        "какая-то утомительная лекция с набором",
-        "каких-то",
+        "[applause]",
+        "good afternoon so i always try",
+        "to build our meeting so it isn't",
+        "some tedious lecture with a",
+        "set",
     ]
     assert segments[0].start == 2.92
     assert segments[1].start == 5.06

@@ -34,6 +34,6 @@ def test_bad_sources_fail_without_blocking_others(tmp_path):
     items, failures = resolve([missing, "https://example.com/v", str(empty)])
     assert items == [Item("url", "https://example.com/v")]
     assert [(f.source, f.status, f.reason) for f in failures] == [
-        (missing, "failed", "путь не существует"),
-        (str(empty), "failed", "в директории нет медиафайлов"),
+        (missing, "failed", "path does not exist"),
+        (str(empty), "failed", "no media files in the directory"),
     ]
