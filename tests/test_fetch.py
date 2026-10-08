@@ -3,7 +3,7 @@ import types
 
 import pytest
 
-from huginn.fetch import Fetcher
+from huginn.fetch import Entry, Fetcher, Playlist
 from huginn.models import SourceError
 from huginn.subtitles import Track
 
@@ -61,10 +61,28 @@ def test_probe_maps_metadata(ydl):
     assert options["skip_download"] and options["noplaylist"]
 
 
-def test_probe_rejects_playlists(ydl):
+def test_probe_maps_playlist_to_ordered_entries(ydl):
+    ydl.info = {
+        "_type": "playlist", "id": "PL1", "title": "Course",
+        "entries": iter([
+            {"_type": "url", "id": "a1", "url": "https://example.com/a1"},
+            {"id": "b2", "webpage_url": "https://example.com/b2"},
+            {"_type": "url", "url": "https://example.com/c3"},
+        ]),
+    }
+    playlist = Fetcher().probe("https://example.com/list")
+    assert playlist == Playlist("PL1", "Course", [
+        Entry("https://example.com/a1", "a1"),
+        Entry("https://example.com/b2", "b2"),
+        Entry("https://example.com/c3", None),
+    ])
+    options = ydl.calls[0][3]
+    assert options["extract_flat"] == "in_playlist" and options["noplaylist"]
+
+
+def test_probe_maps_empty_playlist(ydl):
     ydl.info = {"_type": "playlist", "id": "PL1"}
-    with pytest.raises(SourceError, match="playlists"):
-        Fetcher().probe("https://example.com/list")
+    assert Fetcher().probe("https://example.com/list") == Playlist("PL1", "PL1", [])
 
 
 def test_download_error_becomes_source_error(ydl):
@@ -96,3 +114,17 @@ def test_audio_downloads_best_audio_into_directory(ydl, tmp_path):
     assert path == tmp_path / "audio.webm"
     _, url, download, options = ydl.calls[0]
     assert (url, download, options["format"]) == ("https://example.com/v", True, "bestaudio/best")
+
+
+def test_probe_rejects_channels(ydl):
+    ydl.info = {
+        "_type": "playlist", "id": "UC123", "channel_id": "UC123", "title": "Channel - Videos",
+        "entries": [{"_type": "url", "id": "a1", "url": "https://example.com/a1"}],
+    }
+    with pytest.raises(SourceError, match="channels are not supported, pass a link to a playlist"):
+        Fetcher().probe("https://example.com/@channel")
+
+
+def test_probe_accepts_playlist_owned_by_a_channel(ydl):
+    ydl.info = {"_type": "playlist", "id": "PL1", "channel_id": "UC123", "title": "Course", "entries": []}
+    assert Fetcher().probe("https://example.com/list") == Playlist("PL1", "Course", [])

@@ -42,8 +42,8 @@ def summary(results: list[Result]) -> str:
     return "\n".join(lines)
 
 
-def run(items: list[Item], failures: list[Result], process: Callable[[Item], Result]) -> list[Result]:
-    return failures + [process(item) for item in items]
+def run(items: list[Item], failures: list[Result], process: Callable[[Item], list[Result]]) -> list[Result]:
+    return failures + [result for item in items for result in process(item)]
 
 
 def main(argv: list[str] | None = None) -> int:

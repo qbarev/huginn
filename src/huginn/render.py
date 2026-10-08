@@ -93,5 +93,20 @@ def output_name(title: str, media_id: str | None = None) -> str:
     """Transcript file name; for links the media id is appended to the title."""
     name = _safe(title)[:MAX_NAME_LENGTH].strip("-") or "media"
     if media_id:
-        name = f"{name}-{_safe(media_id) or 'id'}"
+        return f"{name}{id_suffix(media_id)}"
     return f"{name}.md"
+
+
+def id_suffix(media_id: str) -> str:
+    """End of the file name of every transcript of the media with this id."""
+    return f"-{_safe(media_id) or 'id'}.md"
+
+
+def playlist_dir_name(title: str, playlist_id: str | None = None) -> str:
+    """Directory for the transcripts of a playlist."""
+    return output_name(title, playlist_id).removesuffix(".md")
+
+
+def numbered_name(position: int, count: int, name: str) -> str:
+    """Prefix the name with the position in the playlist so that files sort in playlist order."""
+    return f"{position:0{max(2, len(str(count)))}d}-{name}"
