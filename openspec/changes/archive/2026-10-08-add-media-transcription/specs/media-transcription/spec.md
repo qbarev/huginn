@@ -143,7 +143,7 @@ A failure while processing one source SHALL NOT interrupt processing of the othe
 
 #### Scenario: No speech in the media
 - **WHEN** recognition returned no text
-- **THEN** no transcript file is created and the source is marked as failed with the reason "речь не найдена" (no speech found)
+- **THEN** no transcript file is created and the source is marked as failed with the reason "no speech found"
 
 ### Requirement: Clear messages about environment problems
 When processing is impossible because a system dependency is missing, the system SHALL say what is missing and how to install it, without printing a stack trace.

@@ -30,7 +30,7 @@ def resolve(args: list[str]) -> tuple[list[Item], list[Result]]:
             if media:
                 items.extend(Item("file", str(p)) for p in media)
             else:
-                failures.append(Result(arg, "failed", reason="в директории нет медиафайлов"))
+                failures.append(Result(arg, "failed", reason="no media files in the directory"))
         else:
-            failures.append(Result(arg, "failed", reason="путь не существует"))
+            failures.append(Result(arg, "failed", reason="path does not exist"))
     return items, failures

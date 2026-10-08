@@ -8,7 +8,7 @@ Fast text transcripts of video and audio: read one in a couple of minutes and de
 - When there are no subtitles, or you want clean text, speech is recognised locally with a Whisper model.
 - The result is one Markdown file per media: a header and the text in paragraphs with timecodes.
 
-Works only on a Mac with Apple Silicon. The command's own messages and the transcript header are in Russian.
+Works only on a Mac with Apple Silicon.
 
 ## Installation
 

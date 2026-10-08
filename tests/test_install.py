@@ -116,7 +116,7 @@ def test_installs_only_what_is_missing(sandbox):
     result = sandbox.run()
     assert result.returncode == 0, result.stderr
     assert sandbox.calls()[0] == "brew install ffmpeg"
-    assert "✓ uv уже установлен" in result.stdout
+    assert "✓ uv is already installed" in result.stdout
 
 
 def test_skips_brew_when_dependencies_present(sandbox):
@@ -129,7 +129,7 @@ def test_skips_brew_when_dependencies_present(sandbox):
 def test_fails_without_homebrew(sandbox):
     result = sandbox.run()
     assert result.returncode == 1
-    assert "не найден Homebrew" in result.stderr and "https://brew.sh" in result.stderr
+    assert "Homebrew not found" in result.stderr and "https://brew.sh" in result.stderr
     assert sandbox.calls() == []
     assert not (sandbox.home / ".zshrc").exists()
 
@@ -139,7 +139,7 @@ def test_rejects_unsupported_platform(sandbox, system, arch):
     sandbox.have("brew", "uv", "ffmpeg")
     result = sandbox.run(FAKE_OS=system, FAKE_ARCH=arch)
     assert result.returncode == 1
-    assert "только на Mac с Apple Silicon" in result.stderr
+    assert "only on a Mac with Apple Silicon" in result.stderr
     assert sandbox.calls() == []
 
 
@@ -179,7 +179,7 @@ def test_second_run_does_not_duplicate_path_line(sandbox):
     result = sandbox.run()
     assert result.returncode == 0, result.stderr
     assert (sandbox.home / ".zshrc").read_text().count("export PATH=") == 1
-    assert "PATH уже прописан" in result.stdout
+    assert "PATH is already set" in result.stdout
 
 
 def test_leaves_shell_config_alone_when_directory_already_in_path(sandbox):
@@ -187,7 +187,7 @@ def test_leaves_shell_config_alone_when_directory_already_in_path(sandbox):
     result = sandbox.run(PATH=f"{sandbox.tool_bin}:{sandbox.env['PATH']}")
     assert result.returncode == 0, result.stderr
     assert not (sandbox.home / ".zshrc").exists()
-    assert "уже в PATH" in result.stdout
+    assert "is already on PATH" in result.stdout
 
 
 @pytest.mark.parametrize(
@@ -212,7 +212,7 @@ def test_fails_when_installed_command_does_not_run(sandbox):
     sandbox.have("uv", "ffmpeg")
     result = sandbox.run(HUGINN_EXIT="1")
     assert result.returncode == 1
-    assert "не запускается после установки" in result.stderr
+    assert "does not run after installation" in result.stderr
 
 
 def test_installer_is_executable():

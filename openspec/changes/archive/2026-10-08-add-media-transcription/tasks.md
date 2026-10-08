@@ -42,7 +42,7 @@ All groups with code are done through TDD: first a failing test, then a minimal 
 
 - [x] 7.1 Implement processing of a single item: subtitles for a link, otherwise recognition; `--whisper` forces recognition; verify: the tests with stubs for `fetch` and the transcriber cover all the scenarios of the requirements "Existing subtitles for links" and "Local speech recognition"
 - [x] 7.2 Implement skipping of finished transcripts and `--force`, writing to `./transcripts` or `--out`, deletion of the temporary audio; verify: the tests confirm that on a skip the transcriber is not called, and that the temporary files are deleted on an error too
-- [x] 7.3 Implement handling of an empty recognition result as the error "речь не найдена" (no speech found); verify: the test confirms that the file is not created
+- [x] 7.3 Implement handling of an empty recognition result as the error "no speech found"; verify: the test confirms that the file is not created
 - [x] 7.4 Implement the CLI: the arguments `--out`, `--whisper`, `--model`, `--lang`, `--force`, progress to stderr, the final summary and the exit code; verify: the tests confirm that the failure of one source does not interrupt the others, the summary lists the created, skipped and failed ones, the exit code is 1 on a failure and 0 otherwise
 - [x] 7.5 Write the README: installation (`brew`, `uv`), usage examples, flags, the model download on the first run, updating `yt-dlp`; verify: the commands from the README run as written
 

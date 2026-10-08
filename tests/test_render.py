@@ -7,8 +7,8 @@ def seg(start, end, text):
 
 
 def test_paragraph_breaks_on_pause():
-    result = paragraphs([seg(0, 3, "Раз."), seg(3.5, 6, " Два. "), seg(8, 10, "Три.")])
-    assert [(p.start, p.text) for p in result] == [(0, "Раз. Два."), (8, "Три.")]
+    result = paragraphs([seg(0, 3, "One."), seg(3.5, 6, " Two. "), seg(8, 10, "Three.")])
+    assert [(p.start, p.text) for p in result] == [(0, "One. Two."), (8, "Three.")]
 
 
 def test_continuous_speech_is_split_by_duration():
@@ -38,48 +38,48 @@ def test_moment_url_only_for_youtube():
 
 def test_render_subtitles_from_youtube():
     meta = Meta(
-        title="Доклад",
+        title="Talk",
         source="https://www.youtube.com/watch?v=abc",
         language="ru",
-        method="субтитры платформы (автоматические)",
+        method="platform subtitles (automatic)",
         duration=600,
         media_id="abc",
     )
-    text = render(meta, [seg(0, 4, "привет всем"), seg(155, 158, "вторая часть")])
+    text = render(meta, [seg(0, 4, "hello everyone"), seg(155, 158, "second part")])
     assert text == (
-        "# Доклад\n"
+        "# Talk\n"
         "\n"
-        "- Источник: https://www.youtube.com/watch?v=abc\n"
-        "- Длительность: 10:00\n"
-        "- Язык: ru\n"
-        "- Получено: субтитры платформы (автоматические)\n"
+        "- Source: https://www.youtube.com/watch?v=abc\n"
+        "- Duration: 10:00\n"
+        "- Language: ru\n"
+        "- Obtained via: platform subtitles (automatic)\n"
         "\n"
-        "[[00:00]](https://youtu.be/abc?t=0) привет всем\n"
+        "[[00:00]](https://youtu.be/abc?t=0) hello everyone\n"
         "\n"
-        "[[02:35]](https://youtu.be/abc?t=155) вторая часть\n"
+        "[[02:35]](https://youtu.be/abc?t=155) second part\n"
     )
 
 
 def test_render_recognised_local_file_longer_than_hour():
     meta = Meta(title="talk", source="/media/talk.mp4", language=None, method="Whisper large-v3-turbo")
-    text = render(meta, [seg(0, 4, "Начало."), seg(3734, 3740, "Конец.")])
+    text = render(meta, [seg(0, 4, "Beginning."), seg(3734, 3740, "The end.")])
     assert text == (
         "# talk\n"
         "\n"
-        "- Источник: /media/talk.mp4\n"
-        "- Длительность: 1:02:20\n"
-        "- Язык: не определён\n"
-        "- Получено: Whisper large-v3-turbo\n"
+        "- Source: /media/talk.mp4\n"
+        "- Duration: 1:02:20\n"
+        "- Language: unknown\n"
+        "- Obtained via: Whisper large-v3-turbo\n"
         "\n"
-        "[0:00:00] Начало.\n"
+        "[0:00:00] Beginning.\n"
         "\n"
-        "[1:02:14] Конец.\n"
+        "[1:02:14] The end.\n"
     )
 
 
 def test_output_names():
-    assert output_name("Лекция №1: «Введение» / часть 2?", "dQw4-w9_WgX") == "Лекция-1-Введение-часть-2-dQw4-w9_WgX.md"
+    assert output_name("Vorlesung №1: «Einführung» / Teil 2?", "dQw4-w9_WgX") == "Vorlesung-1-Einführung-Teil-2-dQw4-w9_WgX.md"
     assert output_name("talk") == "talk.md"
     assert output_name("???", "x1") == "media-x1.md"
-    assert output_name("Тот же заголовок", "a1") != output_name("Тот же заголовок", "b2")
-    assert len(output_name("я" * 300, "id")) == 80 + len("-id.md")
+    assert output_name("Same title", "a1") != output_name("Same title", "b2")
+    assert len(output_name("é" * 300, "id")) == 80 + len("-id.md")

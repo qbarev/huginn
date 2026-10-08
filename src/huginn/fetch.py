@@ -42,7 +42,7 @@ class Fetcher:
         except yt_dlp.utils.DownloadError as error:
             raise SourceError(_reason(error)) from error
         if info.get("_type") == "playlist":
-            raise SourceError("плейлисты и каналы не поддерживаются, передайте ссылку на одно видео")
+            raise SourceError("playlists and channels are not supported, pass a link to a single video")
         return MediaInfo(
             id=str(info.get("id") or ""),
             title=info.get("title") or str(info.get("id") or url),
@@ -65,7 +65,7 @@ class Fetcher:
             with yt_dlp.YoutubeDL(_QUIET) as ydl:
                 return ydl.urlopen(vtt["url"]).read().decode("utf-8", errors="replace")
         except Exception as error:
-            raise SourceError(f"не удалось загрузить субтитры: {_reason(error)}") from error
+            raise SourceError(f"could not download subtitles: {_reason(error)}") from error
 
     def audio(self, url: str, directory: Path) -> Path:
         import yt_dlp

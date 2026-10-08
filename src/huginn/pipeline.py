@@ -59,16 +59,16 @@ class Pipeline:
                 list(info.subtitles), list(info.automatic), self.options.language, info.language
             )
             if track:
-                kind = "автоматические" if track.automatic else "авторские"
-                self.log(f"  субтитры платформы ({kind}, {track.key})")
+                kind = "automatic" if track.automatic else "authored"
+                self.log(f"  platform subtitles ({kind}, {track.key})")
                 text = self.fetcher.subtitles(info, track)
                 segments = subtitles.parse_vtt(text) if text else []
                 language = language or track.key
-                method = f"субтитры платформы ({kind})"
+                method = f"platform subtitles ({kind})"
         if not segments:
             self.check_ffmpeg()
             with tempfile.TemporaryDirectory(prefix="huginn-") as directory:
-                self.log("  загрузка аудиодорожки")
+                self.log("  downloading audio track")
                 audio = self.fetcher.audio(url, Path(directory))
                 segments, recognised = self._recognise(audio)
             language = self.options.language or recognised or info.language
@@ -88,20 +88,20 @@ class Pipeline:
 
     def _done(self, target: Path) -> bool:
         if target.exists() and not self.options.force:
-            self.log(f"  уже готово: {target}")
+            self.log(f"  already done: {target}")
             return True
         return False
 
     def _recognise(self, audio: Path) -> tuple[list[Segment], str | None]:
-        self.log(f"  распознавание речи: {self.transcriber.label}")
+        self.log(f"  speech recognition: {self.transcriber.label}")
         transcript = self.transcriber.transcribe(audio, self.options.language)
         segments = [s for s in transcript.segments if s.text.strip()]
         if not segments:
-            raise SourceError("речь не найдена")
+            raise SourceError("no speech found")
         return segments, transcript.language
 
     def _write(self, source: str, target: Path, meta: Meta, segments: list[Segment]) -> Result:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(render(meta, segments), encoding="utf-8")
-        self.log(f"  готово: {target}")
+        self.log(f"  done: {target}")
         return Result(source, "created", str(target))

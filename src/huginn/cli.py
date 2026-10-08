@@ -13,23 +13,23 @@ from huginn.transcriber import DEFAULT_MODEL, MODELS, MlxWhisper
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="huginn",
-        description="Транскрипты видео и аудио для быстрого скрининга.",
+        description="Transcripts of video and audio for quick screening.",
     )
-    parser.add_argument("sources", nargs="+", metavar="ИСТОЧНИК", help="ссылка, медиафайл или директория")
+    parser.add_argument("sources", nargs="+", metavar="SOURCE", help="a link, a media file or a directory")
     parser.add_argument("--out", type=Path, default=Path("transcripts"), metavar="DIR",
-                        help="куда сохранять транскрипты (по умолчанию ./transcripts)")
+                        help="where to save transcripts (default: ./transcripts)")
     parser.add_argument("--whisper", action="store_true",
-                        help="распознавать речь, даже если у ссылки есть субтитры")
+                        help="recognise speech even when the link has subtitles")
     parser.add_argument("--model", default=DEFAULT_MODEL, metavar="NAME",
-                        help=f"модель Whisper: {', '.join(MODELS)} или репозиторий Hugging Face "
-                             f"(по умолчанию {DEFAULT_MODEL})")
-    parser.add_argument("--lang", metavar="CODE", help="язык медиа, например ru или en (по умолчанию определяется сам)")
-    parser.add_argument("--force", action="store_true", help="пересоздать уже готовые транскрипты")
+                        help=f"Whisper model: {', '.join(MODELS)} or a Hugging Face repository "
+                             f"(default: {DEFAULT_MODEL})")
+    parser.add_argument("--lang", metavar="CODE", help="language of the media, e.g. ru or en (detected automatically by default)")
+    parser.add_argument("--force", action="store_true", help="recreate transcripts that already exist")
     return parser
 
 
 def summary(results: list[Result]) -> str:
-    groups = [("Создано", "created"), ("Пропущено (уже готово)", "skipped"), ("Не удалось", "failed")]
+    groups = [("Created", "created"), ("Skipped (already done)", "skipped"), ("Failed", "failed")]
     lines: list[str] = []
     for title, status in groups:
         matching = [r for r in results if r.status == status]
