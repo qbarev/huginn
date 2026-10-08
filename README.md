@@ -1,57 +1,59 @@
 # huginn
 
-Быстрые текстовые транскрипты видео и аудио: прочитать за пару минут и решить, стоит ли смотреть целиком.
+Fast text transcripts of video and audio: read one in a couple of minutes and decide whether the whole thing is worth watching.
 
-- Для ссылок сначала берутся готовые субтитры платформы — это секунды.
-- Если субтитров нет или нужен аккуратный текст, речь распознаётся локально моделью Whisper.
-- Результат — один Markdown-файл на медиа: шапка и текст абзацами с таймкодами.
+- For links, the platform's existing subtitles are used first — that takes seconds.
+- When there are no subtitles, or you want clean text, speech is recognised locally with a Whisper model.
+- The result is one Markdown file per media: a header and the text in paragraphs with timecodes.
 
-Работает только на Mac с Apple Silicon.
+Works only on a Mac with Apple Silicon. The command's own messages and the transcript header are in Russian.
 
-## Установка
+## Installation
 
 ```sh
 ./install.sh
 ```
 
-Установщик ставит через Homebrew недостающие `uv` и `ffmpeg`, устанавливает команду `huginn` и, если её каталог не в `PATH`, прописывает его в конфиг оболочки (`~/.zshrc`, `~/.bash_profile` или `~/.profile`). Сам Homebrew он не ставит. Повторный запуск безопасен.
+The installer uses Homebrew to install `uv` and `ffmpeg` if they are missing, installs the `huginn` command and, when its directory is not on `PATH`, adds it to your shell config (`~/.zshrc`, `~/.bash_profile` or `~/.profile`). It does not install Homebrew itself. Running it again is safe.
 
-После этого команда `huginn` доступна из любой директории. Установка редактируемая: правки в коде проекта подхватываются без переустановки.
+After that the `huginn` command is available from any directory. The install is editable: changes to the project code take effect without reinstalling.
 
-`ffmpeg` нужен только для распознавания речи; транскрипты из субтитров создаются и без него.
+`ffmpeg` is needed only for speech recognition; transcripts built from subtitles work without it.
 
-## Запуск
+## Usage
 
 ```sh
-huginn "https://www.youtube.com/watch?v=..."      # субтитры, если есть; иначе Whisper
-huginn --whisper "https://www.youtube.com/watch?v=..."   # всегда Whisper
-huginn lecture.mp4 ~/Recordings                   # файл и все медиафайлы директории
+huginn "https://www.youtube.com/watch?v=..."      # subtitles if available, otherwise Whisper
+huginn --whisper "https://www.youtube.com/watch?v=..."   # always Whisper
+huginn lecture.mp4 ~/Recordings                   # a file and every media file in a directory
 ```
 
-Можно передать несколько источников сразу. Из директории берутся только медиафайлы верхнего уровня.
+You can pass several sources at once. From a directory only top-level media files are taken.
 
-| Флаг | Что делает |
+| Flag | What it does |
 |---|---|
-| `--out DIR` | Куда сохранять транскрипты. По умолчанию `./transcripts`. |
-| `--whisper` | Распознавать речь, даже если у ссылки есть субтитры. |
-| `--model NAME` | Модель Whisper: `turbo` (по умолчанию), `large-v3`, `small` или имя репозитория Hugging Face. |
-| `--lang CODE` | Язык медиа (`ru`, `en`). По умолчанию определяется автоматически. |
-| `--force` | Пересоздать транскрипт, который уже есть. |
+| `--out DIR` | Where to save transcripts. Defaults to `./transcripts`. |
+| `--whisper` | Recognise speech even when the link has subtitles. |
+| `--model NAME` | Whisper model: `turbo` (default), `large-v3`, `small` or a Hugging Face repository name. |
+| `--lang CODE` | Language of the media (`ru`, `en`). Detected automatically by default. |
+| `--force` | Recreate a transcript that already exists. |
 
-Ход работы печатается в stderr, итоговая сводка — в stdout. Если хотя бы один источник не обработан, код завершения равен 1; остальные источники при этом обрабатываются.
+Progress is printed to stderr, the final summary to stdout. If at least one source fails the exit code is 1; the other sources are still processed.
 
-## Что стоит знать
+## Good to know
 
-- **Автоматические субтитры** YouTube на русском идут без пунктуации и заглавных букв. Чтобы понять содержание, их хватает; для аккуратного текста используйте `--whisper`.
-- **Первый запуск распознавания** скачивает модель (около 1.5 ГБ для `turbo`) в кэш Hugging Face.
-- **Кликабельные таймкоды** делаются только для YouTube.
-- **Плейлисты и каналы** не поддерживаются — передавайте ссылки на отдельные видео.
-- **Если ссылки перестали открываться**, обновите `yt-dlp`: `uv lock --upgrade-package yt-dlp && uv sync`.
+- **Automatic subtitles** on YouTube in Russian come without punctuation or capital letters. They are enough to understand the content; use `--whisper` for clean text.
+- **Speed**: on an M1 with 16 GB, a 58-minute recording takes about 3 seconds through subtitles and about 6.5 minutes through Whisper `turbo`.
+- **The first recognition run** downloads the model (about 1.5 GB for `turbo`) into the Hugging Face cache.
+- **Subtitles are skipped** when the platform does not report the media language and there are several authored tracks; pass `--lang` to pick one.
+- **Clickable timecodes** are produced only for YouTube.
+- **Playlists and channels** are not supported — pass links to individual videos.
+- **If links stop working**, update `yt-dlp`: `uv lock --upgrade-package yt-dlp && ./install.sh`.
 
-## Разработка
+## Development
 
 ```sh
 uv run pytest
 ```
 
-Спецификация и история изменений ведутся в `openspec/`.
+Specifications and the history of changes live in `openspec/`.

@@ -56,7 +56,7 @@ def timecode(seconds: float, with_hours: bool = False) -> str:
 
 
 def moment_url(source: str, media_id: str | None, seconds: float) -> str | None:
-    """Ссылка на момент медиа; поддерживается только YouTube."""
+    """Link to a moment in the media; only YouTube is supported."""
     host = (urlparse(source).hostname or "").lower()
     is_youtube = host == "youtu.be" or host == "youtube.com" or host.endswith(".youtube.com")
     if not is_youtube or not media_id:
@@ -90,7 +90,7 @@ def _safe(text: str) -> str:
 
 
 def output_name(title: str, media_id: str | None = None) -> str:
-    """Имя файла транскрипта: для ссылок к названию добавляется идентификатор медиа."""
+    """Transcript file name; for links the media id is appended to the title."""
     name = _safe(title)[:MAX_NAME_LENGTH].strip("-") or "media"
     if media_id:
         name = f"{name}-{_safe(media_id) or 'id'}"

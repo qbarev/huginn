@@ -2,31 +2,31 @@
 
 ## Why
 
-Чтобы понять, стоит ли смотреть часовое видео, сейчас нужно его смотреть. Нужен быстрый скрининг: получить текст видео за секунды или минуты, прочитать его и решить, тратить ли время на просмотр. Инструмент бесполезен, если текст готовится сопоставимо с длиной самого видео.
+To find out whether an hour-long video is worth watching, you currently have to watch it. A quick screening is needed: get the video's text in seconds or minutes, read it, and decide whether to spend time watching. The tool is useless if preparing the text takes about as long as the video itself.
 
 ## What Changes
 
-- Появляется CLI `huginn`, принимающий один или несколько источников: ссылку на видео или аудио, путь к медиафайлу, путь к директории с медиафайлами.
-- Для ссылок сначала берутся готовые субтитры с платформы (секунды). Если их нет или задан флаг `--whisper`, скачивается аудиодорожка и распознаётся локально моделью Whisper.
-- Локальные файлы всегда распознаются локально моделью Whisper.
-- На каждый медиафайл создаётся один Markdown-файл для чтения человеком: шапка (название, источник, длительность, язык, способ получения) и текст абзацами с таймкодами.
-- Пакетная обработка переживает сбой отдельного элемента, пропускает уже готовые транскрипты и завершает работу сводкой.
+- A `huginn` CLI appears that accepts one or more sources: a link to a video or audio, a path to a media file, a path to a directory with media files.
+- For links, ready-made platform subtitles are taken first (seconds). If there are none or the `--whisper` flag is set, the audio track is downloaded and recognized locally by the Whisper model.
+- Local files are always recognized locally by the Whisper model.
+- One Markdown file for human reading is created per media file: a header (title, source, duration, language, method of obtaining) and the text in paragraphs with timecodes.
+- Batch processing survives the failure of an individual item, skips transcripts that are already done, and finishes with a summary.
 
-Вне скоупа: плейлисты и каналы целиком, разделение по спикерам, саммари и оценка «смотреть или нет», перевод, облачные API распознавания, машиночитаемый вывод (JSON, SRT).
+Out of scope: whole playlists and channels, speaker separation, summaries and a "watch or not" verdict, translation, cloud recognition APIs, machine-readable output (JSON, SRT).
 
 ## Capabilities
 
 ### New Capabilities
-- `media-transcription`: превращение ссылок и локальных медиафайлов в читаемые человеком текстовые транскрипты — разбор входа, выбор способа получения текста, формат результата, поведение при ошибках и повторных запусках.
+- `media-transcription`: turning links and local media files into human-readable text transcripts — input parsing, choosing how the text is obtained, the result format, behavior on errors and on repeated runs.
 
 ### Modified Capabilities
 
-Нет — проект создаётся с нуля.
+None — the project is created from scratch.
 
 ## Impact
 
-- Новый Python-пакет `huginn` (Python 3.12, управляется `uv`) с консольной командой `huginn`.
-- Зависимости пакета: `mlx-whisper` (работает только на Apple Silicon), `yt-dlp`.
-- Системные зависимости, которых сейчас нет на машине: `uv`, `ffmpeg` (ставятся через Homebrew).
-- При первом запуске Whisper скачивается модель (порядка 1.5 ГБ для `large-v3-turbo`) в кэш Hugging Face.
-- Сетевые обращения к видеоплатформам через `yt-dlp`; при изменениях на стороне платформ потребуется обновление `yt-dlp`.
+- A new Python package `huginn` (Python 3.12, managed by `uv`) with a `huginn` console command.
+- Package dependencies: `mlx-whisper` (works only on Apple Silicon), `yt-dlp`.
+- System dependencies that are currently missing on the machine: `uv`, `ffmpeg` (installed via Homebrew).
+- On the first Whisper run the model is downloaded (about 1.5 GB for `large-v3-turbo`) into the Hugging Face cache.
+- Network requests to video platforms via `yt-dlp`; when platforms change on their side, `yt-dlp` will need to be updated.

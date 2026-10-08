@@ -23,10 +23,10 @@ def _seconds(stamp: str) -> float:
 
 
 def parse_vtt(text: str) -> list[Segment]:
-    """Разбирает VTT в сегменты, снимая разметку и повторы строк между соседними репликами.
+    """Parse VTT into segments, dropping markup and lines repeated between adjacent cues.
 
-    Автоматические субтитры YouTube «прокручиваются»: каждая реплика повторяет
-    последнюю строку предыдущей. В сегмент попадают только новые строки реплики.
+    YouTube automatic subtitles "roll": every cue repeats the last line of the
+    previous one. Only the lines that are new in a cue go into its segment.
     """
     segments: list[Segment] = []
     previous: list[str] = []
@@ -64,7 +64,7 @@ def choose_track(
     requested: str | None,
     media_language: str | None,
 ) -> Track | None:
-    """Выбирает дорожку субтитров на языке оригинала; авторская предпочитается автоматической."""
+    """Choose the subtitle track in the original language; authored beats automatic."""
     manual = [key for key in manual if key != "live_chat"]
     language = requested or media_language
     if language:

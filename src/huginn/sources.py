@@ -13,7 +13,7 @@ def is_url(arg: str) -> bool:
 
 
 def resolve(args: list[str]) -> tuple[list[Item], list[Result]]:
-    """Разворачивает аргументы в элементы; нераспознанные возвращает как неудавшиеся."""
+    """Expand arguments into items; unrecognised ones are returned as failures."""
     items: list[Item] = []
     failures: list[Result] = []
     for arg in args:

@@ -2,163 +2,163 @@
 
 ## Purpose
 
-Превращает ссылки на видео и аудио и локальные медиафайлы в текстовые транскрипты, удобные для чтения человеком, достаточно быстро, чтобы по тексту решить, стоит ли смотреть оригинал.
+Turns links to video and audio and local media files into text transcripts that are comfortable for a person to read, fast enough to decide from the text whether the original is worth watching.
 
 ## ADDED Requirements
 
-### Requirement: Приём источников
-Система SHALL принимать в одном запуске один или несколько источников, каждый из которых является ссылкой на медиа, путём к медиафайлу или путём к директории.
+### Requirement: Accepting sources
+The system SHALL accept one or more sources in a single run, each of which is a link to media, a path to a media file or a path to a directory.
 
-#### Scenario: Ссылка
-- **WHEN** пользователь передаёт ссылку `http(s)://...` на видео или аудио
-- **THEN** система создаёт один транскрипт для этого медиа
+#### Scenario: Link
+- **WHEN** the user passes an `http(s)://...` link to a video or audio
+- **THEN** the system creates one transcript for that media
 
-#### Scenario: Локальный файл
-- **WHEN** пользователь передаёт путь к существующему видео- или аудиофайлу
-- **THEN** система создаёт один транскрипт для этого файла
+#### Scenario: Local file
+- **WHEN** the user passes a path to an existing video or audio file
+- **THEN** the system creates one transcript for that file
 
-#### Scenario: Директория
-- **WHEN** пользователь передаёт путь к директории, в которой лежат медиафайлы и файлы других типов
-- **THEN** система создаёт по одному транскрипту на каждый видео- и аудиофайл непосредственно в этой директории
-- **AND** не обрабатывает файлы других типов и содержимое вложенных директорий
+#### Scenario: Directory
+- **WHEN** the user passes a path to a directory that contains media files and files of other types
+- **THEN** the system creates one transcript for each video and audio file directly inside that directory
+- **AND** does not process files of other types or the contents of nested directories
 
-#### Scenario: Несколько источников
-- **WHEN** пользователь передаёт в одном запуске ссылку и путь к файлу
-- **THEN** система обрабатывает оба источника и создаёт транскрипт для каждого
+#### Scenario: Several sources
+- **WHEN** the user passes a link and a file path in one run
+- **THEN** the system processes both sources and creates a transcript for each
 
-#### Scenario: Источник не распознан
-- **WHEN** пользователь передаёт путь, которого не существует, или директорию без медиафайлов
-- **THEN** система сообщает об этом источнике как о неудавшемся с указанием причины
+#### Scenario: Unrecognised source
+- **WHEN** the user passes a path that does not exist, or a directory without media files
+- **THEN** the system reports that source as failed and states the reason
 
-### Requirement: Готовые субтитры для ссылок
-Для ссылки система SHALL сначала использовать субтитры, опубликованные на платформе, на языке оригинала медиа, предпочитая авторские субтитры автоматически сгенерированным, и SHALL NOT скачивать медиа и запускать распознавание речи, когда такие субтитры получены.
+### Requirement: Existing subtitles for links
+For a link the system SHALL first use subtitles published on the platform in the original language of the media, preferring authored subtitles over automatically generated ones, and SHALL NOT download the media or run speech recognition when such subtitles are obtained.
 
-#### Scenario: Есть авторские субтитры
-- **WHEN** у видео по ссылке есть авторские и автоматические субтитры на языке оригинала
-- **THEN** транскрипт строится из авторских субтитров без распознавания речи
+#### Scenario: Authored subtitles exist
+- **WHEN** the video behind the link has both authored and automatic subtitles in the original language
+- **THEN** the transcript is built from the authored subtitles without speech recognition
 
-#### Scenario: Есть только автоматические субтитры
-- **WHEN** у видео по ссылке есть только автоматические субтитры на языке оригинала
-- **THEN** транскрипт строится из автоматических субтитров без распознавания речи
+#### Scenario: Only automatic subtitles exist
+- **WHEN** the video behind the link has only automatic subtitles in the original language
+- **THEN** the transcript is built from the automatic subtitles without speech recognition
 
-#### Scenario: Повторы в автоматических субтитрах
-- **WHEN** дорожка субтитров содержит повторяющиеся от реплики к реплике строки и служебную разметку
-- **THEN** в транскрипте каждая фраза встречается один раз и разметки нет
+#### Scenario: Repeats in automatic subtitles
+- **WHEN** the subtitle track contains lines repeated from cue to cue and service markup
+- **THEN** every phrase appears once in the transcript and there is no markup
 
-### Requirement: Локальное распознавание речи
-Система SHALL получать текст локальным распознаванием речи для локальных файлов, для ссылок без подходящих субтитров и для любых источников, когда пользователь явно требует распознавания.
+### Requirement: Local speech recognition
+The system SHALL obtain the text by local speech recognition for local files, for links without suitable subtitles and for any source when the user explicitly demands recognition.
 
-#### Scenario: Локальный файл
-- **WHEN** источником является локальный видео- или аудиофайл
-- **THEN** транскрипт строится распознаванием его звуковой дорожки
+#### Scenario: Local file
+- **WHEN** the source is a local video or audio file
+- **THEN** the transcript is built by recognising its audio track
 
-#### Scenario: У ссылки нет субтитров
-- **WHEN** у медиа по ссылке нет субтитров на языке оригинала
-- **THEN** система скачивает звуковую дорожку и строит транскрипт распознаванием
+#### Scenario: Link has no subtitles
+- **WHEN** the media behind the link has no subtitles in the original language
+- **THEN** the system downloads the audio track and builds the transcript by recognition
 
-#### Scenario: Принудительное распознавание
-- **WHEN** пользователь передаёт ссылку с флагом `--whisper`, а у видео есть субтитры
-- **THEN** транскрипт строится распознаванием, субтитры не используются
+#### Scenario: Forced recognition
+- **WHEN** the user passes a link with the `--whisper` flag and the video has subtitles
+- **THEN** the transcript is built by recognition and the subtitles are not used
 
-#### Scenario: Выбор модели и языка
-- **WHEN** пользователь задаёт `--model` и `--lang`
-- **THEN** распознавание выполняется указанной моделью в предположении указанного языка
+#### Scenario: Choosing model and language
+- **WHEN** the user sets `--model` and `--lang`
+- **THEN** recognition runs with the given model, assuming the given language
 
-#### Scenario: Язык не задан
-- **WHEN** пользователь не задаёт `--lang`
-- **THEN** язык речи определяется автоматически
+#### Scenario: Language not set
+- **WHEN** the user does not set `--lang`
+- **THEN** the language of the speech is detected automatically
 
-### Requirement: Формат транскрипта
-Система SHALL сохранять каждый транскрипт отдельным Markdown-файлом, содержащим заголовок с названием медиа, сведения об источнике, длительности, языке и способе получения текста, и текст, разбитый на абзацы.
+### Requirement: Transcript format
+The system SHALL save each transcript as a separate Markdown file containing a heading with the media title, information about the source, duration, language and how the text was obtained, and the text split into paragraphs.
 
-#### Scenario: Шапка транскрипта из субтитров
-- **WHEN** транскрипт построен из автоматических субтитров платформы
-- **THEN** файл начинается с названия медиа и содержит ссылку на источник, длительность, язык и пометку, что текст получен из автоматических субтитров
+#### Scenario: Header of a transcript from subtitles
+- **WHEN** the transcript is built from the platform's automatic subtitles
+- **THEN** the file starts with the media title and contains the link to the source, the duration, the language and a note that the text comes from automatic subtitles
 
-#### Scenario: Шапка транскрипта из распознавания
-- **WHEN** транскрипт построен распознаванием речи
-- **THEN** в шапке указано, что текст получен распознаванием, и названа использованная модель
+#### Scenario: Header of a transcript from recognition
+- **WHEN** the transcript is built by speech recognition
+- **THEN** the header states that the text was obtained by recognition and names the model used
 
-#### Scenario: Текст абзацами
-- **WHEN** исходные реплики идут короткими строками
-- **THEN** в транскрипте они объединены в абзацы из нескольких предложений, а длинная непрерывная речь разбита на несколько абзацев
+#### Scenario: Text in paragraphs
+- **WHEN** the original cues are short lines
+- **THEN** in the transcript they are joined into paragraphs of several sentences, and long continuous speech is split into several paragraphs
 
-### Requirement: Таймкоды
-Каждый абзац транскрипта SHALL начинаться с таймкода момента, с которого он звучит в медиа.
+### Requirement: Timecodes
+Every paragraph of the transcript SHALL start with the timecode of the moment at which it is spoken in the media.
 
-#### Scenario: Формат таймкода
-- **WHEN** абзац начинается на 2 минуте 35 секунде медиа длительностью меньше часа
-- **THEN** абзац начинается с `[02:35]`
+#### Scenario: Timecode format
+- **WHEN** a paragraph starts at 2 minutes 35 seconds of media shorter than an hour
+- **THEN** the paragraph starts with `[02:35]`
 
-#### Scenario: Медиа длиннее часа
-- **WHEN** абзац начинается на 1 часу 2 минутах 14 секундах
-- **THEN** абзац начинается с `[1:02:14]`
+#### Scenario: Media longer than an hour
+- **WHEN** a paragraph starts at 1 hour 2 minutes 14 seconds
+- **THEN** the paragraph starts with `[1:02:14]`
 
-#### Scenario: Кликабельный таймкод
-- **WHEN** источником является ссылка на YouTube
-- **THEN** таймкод является ссылкой, открывающей видео с этого момента
+#### Scenario: Clickable timecode
+- **WHEN** the source is a YouTube link
+- **THEN** the timecode is a link that opens the video at that moment
 
-#### Scenario: Источник без ссылки на момент
-- **WHEN** источником является локальный файл
-- **THEN** таймкод выводится простым текстом
+#### Scenario: Source without a link to a moment
+- **WHEN** the source is a local file
+- **THEN** the timecode is plain text
 
-### Requirement: Расположение результата
-Система SHALL сохранять транскрипты в директорию `transcripts` текущего каталога либо в директорию, заданную `--out`, под именем, производным от названия медиа или имени исходного файла.
+### Requirement: Output location
+The system SHALL save transcripts into the `transcripts` directory of the current directory, or into the directory given by `--out`, under a name derived from the media title or the name of the source file.
 
-#### Scenario: Директория по умолчанию
-- **WHEN** пользователь не задаёт `--out`
-- **THEN** транскрипты появляются в `./transcripts/`, директория создаётся при отсутствии
+#### Scenario: Default directory
+- **WHEN** the user does not set `--out`
+- **THEN** transcripts appear in `./transcripts/`, and the directory is created if missing
 
-#### Scenario: Заданная директория
-- **WHEN** пользователь задаёт `--out notes`
-- **THEN** транскрипты появляются в `notes/`
+#### Scenario: Given directory
+- **WHEN** the user sets `--out notes`
+- **THEN** transcripts appear in `notes/`
 
-#### Scenario: Разные медиа с одинаковым названием
-- **WHEN** два разных медиа по ссылкам имеют одинаковое название
-- **THEN** создаются два разных файла, ни один не перезаписывает другой
+#### Scenario: Different media with the same title
+- **WHEN** two different media behind links have the same title
+- **THEN** two different files are created and neither overwrites the other
 
-### Requirement: Повторные запуски
-Система SHALL пропускать источник, для которого транскрипт уже существует в целевой директории, если пользователь не потребовал пересоздания.
+### Requirement: Repeated runs
+The system SHALL skip a source whose transcript already exists in the target directory unless the user asked to recreate it.
 
-#### Scenario: Транскрипт уже есть
-- **WHEN** пользователь повторно запускает обработку того же источника
-- **THEN** существующий файл не изменяется, распознавание не запускается, источник отмечается в сводке как пропущенный
+#### Scenario: Transcript already exists
+- **WHEN** the user runs processing of the same source again
+- **THEN** the existing file is not changed, recognition does not run and the source is marked as skipped in the summary
 
-#### Scenario: Принудительное пересоздание
-- **WHEN** пользователь повторно запускает обработку с флагом `--force`
-- **THEN** транскрипт создаётся заново и заменяет существующий
+#### Scenario: Forced recreation
+- **WHEN** the user runs processing again with the `--force` flag
+- **THEN** the transcript is created anew and replaces the existing one
 
-### Requirement: Устойчивость пакетной обработки
-Сбой при обработке одного источника SHALL NOT прерывать обработку остальных; по завершении система SHALL вывести сводку по всем источникам и завершиться с ненулевым кодом, если хотя бы один источник не обработан.
+### Requirement: Batch resilience
+A failure while processing one source SHALL NOT interrupt processing of the others; on completion the system SHALL print a summary of all sources and exit with a non-zero code if at least one source was not processed.
 
-#### Scenario: Один источник из нескольких недоступен
-- **WHEN** в запуске три источника и второй недоступен
-- **THEN** для первого и третьего создаются транскрипты
-- **AND** сводка называет созданные файлы и неудавшийся источник с причиной
-- **AND** код завершения ненулевой
+#### Scenario: One of several sources is unavailable
+- **WHEN** a run has three sources and the second is unavailable
+- **THEN** transcripts are created for the first and the third
+- **AND** the summary names the created files and the failed source with the reason
+- **AND** the exit code is non-zero
 
-#### Scenario: Все источники обработаны
-- **WHEN** все источники обработаны или пропущены как уже готовые
-- **THEN** код завершения равен нулю
+#### Scenario: All sources processed
+- **WHEN** all sources are processed or skipped as already done
+- **THEN** the exit code is zero
 
-#### Scenario: В медиа нет речи
-- **WHEN** распознавание не вернуло текста
-- **THEN** файл транскрипта не создаётся, источник отмечается как неудавшийся с причиной «речь не найдена»
+#### Scenario: No speech in the media
+- **WHEN** recognition returned no text
+- **THEN** no transcript file is created and the source is marked as failed with the reason "речь не найдена" (no speech found)
 
-### Requirement: Понятные сообщения о проблемах окружения
-Когда обработка невозможна из-за отсутствующей системной зависимости, система SHALL сообщить, чего не хватает и как это установить, не выводя трассировку стека.
+### Requirement: Clear messages about environment problems
+When processing is impossible because a system dependency is missing, the system SHALL say what is missing and how to install it, without printing a stack trace.
 
-#### Scenario: Нет ffmpeg
-- **WHEN** источник требует распознавания речи, а `ffmpeg` не установлен
-- **THEN** система выводит сообщение с названием отсутствующей программы и командой установки и не начинает скачивание и распознавание
+#### Scenario: No ffmpeg
+- **WHEN** a source needs speech recognition and `ffmpeg` is not installed
+- **THEN** the system prints a message naming the missing program and the install command, and starts neither the download nor recognition
 
-#### Scenario: ffmpeg не нужен
-- **WHEN** `ffmpeg` не установлен, а транскрипт ссылки строится из субтитров
-- **THEN** транскрипт создаётся успешно
+#### Scenario: ffmpeg not needed
+- **WHEN** `ffmpeg` is not installed and the transcript of a link is built from subtitles
+- **THEN** the transcript is created successfully
 
-### Requirement: Отображение хода работы
-Система SHALL сообщать пользователю, какой источник обрабатывается и каким способом, не смешивая эти сообщения с содержимым транскриптов.
+### Requirement: Showing progress
+The system SHALL tell the user which source is being processed and by which method, without mixing these messages with the contents of transcripts.
 
-#### Scenario: Долгое распознавание
-- **WHEN** запускается распознавание длинного медиа
-- **THEN** до его начала пользователь видит, какой источник обрабатывается, что выбран путь распознавания и какая модель используется
+#### Scenario: Long recognition
+- **WHEN** recognition of a long media is started
+- **THEN** before it starts the user sees which source is being processed, that the recognition path was chosen and which model is used
