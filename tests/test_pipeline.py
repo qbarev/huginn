@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from huginn.fetch import MediaInfo
+from huginn.fetch import Entry, MediaInfo, Playlist
 from huginn.models import Item, Segment, SourceError
 from huginn.pipeline import Options, Pipeline
 from huginn.transcriber import Transcript
@@ -63,13 +63,18 @@ def make(tmp_path, fetcher=None, transcriber=None, ffmpeg=lambda: None, **option
     return pipeline, fetcher, transcriber, log
 
 
+def one(results):
+    (result,) = results
+    return result
+
+
 def no_ffmpeg():
     raise SourceError("ffmpeg not found — install it: brew install ffmpeg")
 
 
 def test_manual_subtitles_are_used_without_recognition(tmp_path):
     pipeline, fetcher, transcriber, _ = make(tmp_path, FakeFetcher(manual=["ru"], automatic=["ru"]), ffmpeg=no_ffmpeg)
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert result.status == "created"
     assert not fetcher.tracks[0].automatic
     assert transcriber.calls == [] and fetcher.audio_dirs == []
@@ -80,14 +85,14 @@ def test_manual_subtitles_are_used_without_recognition(tmp_path):
 
 def test_automatic_subtitles_are_labelled(tmp_path):
     pipeline, _, transcriber, _ = make(tmp_path, FakeFetcher(automatic=["ru", "ru-orig"]))
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert transcriber.calls == []
     assert "- Obtained via: platform subtitles (automatic)" in Path(result.path).read_text()
 
 
 def test_url_without_subtitles_is_recognised_and_audio_removed(tmp_path):
     pipeline, fetcher, transcriber, log = make(tmp_path, FakeFetcher(automatic=["en"]))
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert result.status == "created"
     assert len(transcriber.calls) == 1 and transcriber.calls[0][1] is None
     assert not fetcher.audio_dirs[0].exists()
@@ -99,13 +104,13 @@ def test_url_without_subtitles_is_recognised_and_audio_removed(tmp_path):
 
 def test_whisper_flag_ignores_subtitles(tmp_path):
     pipeline, fetcher, transcriber, _ = make(tmp_path, FakeFetcher(manual=["ru"]), whisper=True)
-    pipeline.process(Item("url", URL))
+    one(pipeline.process(Item("url", URL)))
     assert fetcher.tracks == [] and len(transcriber.calls) == 1
 
 
 def test_empty_subtitles_fall_back_to_recognition(tmp_path):
     pipeline, _, transcriber, _ = make(tmp_path, FakeFetcher(manual=["ru"], vtt="WEBVTT\n"))
-    assert pipeline.process(Item("url", URL)).status == "created"
+    assert one(pipeline.process(Item("url", URL))).status == "created"
     assert len(transcriber.calls) == 1
 
 
@@ -113,7 +118,7 @@ def test_language_option_is_passed_to_recognition(tmp_path):
     media = tmp_path / "talk.mp4"
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path, language="en")
-    result = pipeline.process(Item("file", str(media)))
+    result = one(pipeline.process(Item("file", str(media))))
     assert transcriber.calls == [(media, "en")]
     assert "- Language: en" in Path(result.path).read_text()
 
@@ -122,7 +127,7 @@ def test_local_file_is_recognised(tmp_path):
     media = tmp_path / "Meine Übung.mp4"
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path)
-    result = pipeline.process(Item("file", str(media)))
+    result = one(pipeline.process(Item("file", str(media))))
     assert result.path == str(tmp_path / "out" / "Meine Übung.md")
     text = Path(result.path).read_text()
     assert text.startswith("# Meine Übung\n")
@@ -134,9 +139,9 @@ def test_existing_transcript_is_skipped(tmp_path):
     media = tmp_path / "talk.mp4"
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path)
-    first = pipeline.process(Item("file", str(media)))
+    first = one(pipeline.process(Item("file", str(media))))
     Path(first.path).write_text("user edits")
-    second = pipeline.process(Item("file", str(media)))
+    second = one(pipeline.process(Item("file", str(media))))
     assert second.status == "skipped" and second.path == first.path
     assert len(transcriber.calls) == 1
     assert Path(first.path).read_text() == "user edits"
@@ -144,8 +149,8 @@ def test_existing_transcript_is_skipped(tmp_path):
 
 def test_existing_url_transcript_is_skipped_before_download(tmp_path):
     pipeline, fetcher, transcriber, _ = make(tmp_path, FakeFetcher())
-    pipeline.process(Item("url", URL))
-    assert pipeline.process(Item("url", URL)).status == "skipped"
+    one(pipeline.process(Item("url", URL)))
+    assert one(pipeline.process(Item("url", URL))).status == "skipped"
     assert len(fetcher.audio_dirs) == 1 and len(transcriber.calls) == 1
 
 
@@ -153,9 +158,9 @@ def test_force_recreates_transcript(tmp_path):
     media = tmp_path / "talk.mp4"
     media.touch()
     pipeline, _, transcriber, _ = make(tmp_path, force=True)
-    first = pipeline.process(Item("file", str(media)))
+    first = one(pipeline.process(Item("file", str(media))))
     Path(first.path).write_text("old")
-    assert pipeline.process(Item("file", str(media))).status == "created"
+    assert one(pipeline.process(Item("file", str(media)))).status == "created"
     assert "Recognised text." in Path(first.path).read_text()
 
 
@@ -163,27 +168,160 @@ def test_no_speech_fails_without_file(tmp_path):
     media = tmp_path / "silence.wav"
     media.touch()
     pipeline, _, _, _ = make(tmp_path, transcriber=FakeTranscriber(segments=[Segment(0, 1, "  ")]))
-    result = pipeline.process(Item("file", str(media)))
+    result = one(pipeline.process(Item("file", str(media))))
     assert (result.status, result.reason) == ("failed", "no speech found")
     assert not (tmp_path / "out" / "silence.md").exists()
 
 
 def test_missing_ffmpeg_stops_before_download(tmp_path):
     pipeline, fetcher, transcriber, _ = make(tmp_path, FakeFetcher(), ffmpeg=no_ffmpeg)
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert result.status == "failed" and "brew install ffmpeg" in result.reason
     assert fetcher.audio_dirs == [] and transcriber.calls == []
 
 
 def test_unavailable_url_fails_with_reason(tmp_path):
     pipeline, _, _, _ = make(tmp_path, FakeFetcher(error=SourceError("Video unavailable")))
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert (result.status, result.reason) == ("failed", "Video unavailable")
 
 
 def test_temporary_audio_removed_when_recognition_crashes(tmp_path):
     fetcher = FakeFetcher()
     pipeline, _, _, _ = make(tmp_path, fetcher, FakeTranscriber(error=RuntimeError("boom")))
-    result = pipeline.process(Item("url", URL))
+    result = one(pipeline.process(Item("url", URL)))
     assert (result.status, result.reason) == ("failed", "RuntimeError: boom")
     assert not fetcher.audio_dirs[0].exists()
+
+
+PLAYLIST_URL = "https://www.youtube.com/playlist?list=PL1"
+
+
+def video(media_id):
+    return f"https://www.youtube.com/watch?v={media_id}"
+
+
+class PlaylistFetcher(FakeFetcher):
+    def __init__(self, ids=("v1", "v2", "v3"), unavailable=(), nested=(), entry_ids=True):
+        super().__init__()
+        self.ids = list(ids)
+        self.unavailable = set(unavailable)
+        self.nested = set(nested)
+        self.entry_ids = entry_ids
+        self.probed = []
+
+    def probe(self, url):
+        self.probed.append(url)
+        if url == PLAYLIST_URL:
+            return Playlist("PL1", "Course", [Entry(video(i), i if self.entry_ids else None) for i in self.ids])
+        media_id = url.rsplit("=", 1)[1]
+        if media_id in self.unavailable:
+            raise SourceError("Video unavailable")
+        if media_id in self.nested:
+            return Playlist(media_id, "Videos", [Entry(video("x1"), "x1")])
+        return MediaInfo(id=media_id, title=f"Talk {media_id}", url=url, duration=600, language="ru",
+                         automatic={"ru": []})
+
+
+def playlist_files(tmp_path):
+    return sorted(p.name for p in (tmp_path / "out" / "Course-PL1").iterdir())
+
+
+def test_playlist_videos_are_processed_in_order_into_numbered_files(tmp_path):
+    pipeline, _, transcriber, log = make(tmp_path, PlaylistFetcher())
+    results = pipeline.process(Item("url", PLAYLIST_URL))
+    directory = tmp_path / "out" / "Course-PL1"
+    assert [(r.source, r.status, r.path) for r in results] == [
+        (video("v1"), "created", str(directory / "01-Talk-v1-v1.md")),
+        (video("v2"), "created", str(directory / "02-Talk-v2-v2.md")),
+        (video("v3"), "created", str(directory / "03-Talk-v3-v3.md")),
+    ]
+    assert [p.name for p in (tmp_path / "out").iterdir()] == ["Course-PL1"]
+    assert log[:3] == [f"→ {PLAYLIST_URL}", "  playlist: Course (3 videos)", f"→ {video('v1')}"]
+    assert "- Source: https://www.youtube.com/watch?v=v2" in (directory / "02-Talk-v2-v2.md").read_text()
+    assert transcriber.calls == []
+
+
+def test_unavailable_playlist_video_does_not_stop_the_rest(tmp_path):
+    pipeline, _, _, _ = make(tmp_path, PlaylistFetcher(unavailable=["v2"]))
+    results = pipeline.process(Item("url", PLAYLIST_URL))
+    assert [(r.source, r.status, r.reason) for r in results] == [
+        (video("v1"), "created", None),
+        (video("v2"), "failed", "Video unavailable"),
+        (video("v3"), "created", None),
+    ]
+    assert playlist_files(tmp_path) == ["01-Talk-v1-v1.md", "03-Talk-v3-v3.md"]
+
+
+def test_empty_playlist_fails(tmp_path):
+    pipeline, _, _, _ = make(tmp_path, PlaylistFetcher(ids=[]))
+    result = one(pipeline.process(Item("url", PLAYLIST_URL)))
+    assert (result.source, result.status, result.reason) == (PLAYLIST_URL, "failed", "playlist is empty")
+
+
+def test_nested_playlist_is_not_expanded(tmp_path):
+    fetcher = PlaylistFetcher(ids=["tab", "v2"], nested=["tab"])
+    pipeline, _, _, _ = make(tmp_path, fetcher)
+    first, second = pipeline.process(Item("url", PLAYLIST_URL))
+    assert (first.source, first.status) == (video("tab"), "failed")
+    assert "pass a link to a playlist" in first.reason
+    assert second.status == "created"
+    assert video("x1") not in fetcher.probed
+
+
+def test_finished_playlist_videos_are_skipped_without_probing(tmp_path):
+    fetcher = PlaylistFetcher(unavailable=["v2"])
+    pipeline, _, _, _ = make(tmp_path, fetcher)
+    pipeline.process(Item("url", PLAYLIST_URL))
+    fetcher.unavailable.clear()
+    fetcher.probed.clear()
+    results = pipeline.process(Item("url", PLAYLIST_URL))
+    assert [r.status for r in results] == ["skipped", "created", "skipped"]
+    assert results[0].path == str(tmp_path / "out" / "Course-PL1" / "01-Talk-v1-v1.md")
+    assert fetcher.probed == [PLAYLIST_URL, video("v2")]
+    assert len(fetcher.tracks) == 3
+
+
+def test_playlist_entries_without_id_are_skipped_after_probing(tmp_path):
+    fetcher = PlaylistFetcher(entry_ids=False)
+    pipeline, _, _, _ = make(tmp_path, fetcher)
+    pipeline.process(Item("url", PLAYLIST_URL))
+    assert [r.status for r in pipeline.process(Item("url", PLAYLIST_URL))] == ["skipped"] * 3
+    assert len(fetcher.tracks) == 3
+
+
+def test_moved_playlist_video_keeps_its_transcript(tmp_path):
+    fetcher = PlaylistFetcher(ids=["v1", "v2"])
+    pipeline, _, _, _ = make(tmp_path, fetcher)
+    pipeline.process(Item("url", PLAYLIST_URL))
+    fetcher.ids.insert(0, "v0")
+    results = pipeline.process(Item("url", PLAYLIST_URL))
+    assert [r.status for r in results] == ["created", "skipped", "skipped"]
+    assert results[1].path.endswith("01-Talk-v1-v1.md")
+    assert playlist_files(tmp_path) == ["01-Talk-v0-v0.md", "01-Talk-v1-v1.md", "02-Talk-v2-v2.md"]
+
+
+def test_force_recreates_playlist_and_renumbers_moved_videos(tmp_path):
+    fetcher = PlaylistFetcher(ids=["v1", "v2"])
+    pipeline, _, _, _ = make(tmp_path, fetcher, force=True)
+    pipeline.process(Item("url", PLAYLIST_URL))
+    for name in playlist_files(tmp_path):
+        (tmp_path / "out" / "Course-PL1" / name).write_text("old")
+    assert [r.status for r in pipeline.process(Item("url", PLAYLIST_URL))] == ["created", "created"]
+    assert playlist_files(tmp_path) == ["01-Talk-v1-v1.md", "02-Talk-v2-v2.md"]
+    assert "subtitle text" in (tmp_path / "out" / "Course-PL1" / "01-Talk-v1-v1.md").read_text()
+
+    fetcher.ids.insert(0, "v0")
+    assert [r.status for r in pipeline.process(Item("url", PLAYLIST_URL))] == ["created"] * 3
+    assert playlist_files(tmp_path) == ["01-Talk-v0-v0.md", "02-Talk-v1-v1.md", "03-Talk-v2-v2.md"]
+
+
+def test_failed_forced_recreation_keeps_the_old_transcript(tmp_path):
+    fetcher = PlaylistFetcher(ids=["v1"])
+    pipeline, _, _, _ = make(tmp_path, fetcher, force=True)
+    pipeline.process(Item("url", PLAYLIST_URL))
+    fetcher.ids.insert(0, "v0")
+    fetcher.vtt = "WEBVTT\n"
+    pipeline.transcriber.error = RuntimeError("boom")
+    assert [r.status for r in pipeline.process(Item("url", PLAYLIST_URL))] == ["failed", "failed"]
+    assert playlist_files(tmp_path) == ["01-Talk-v1-v1.md"]

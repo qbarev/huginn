@@ -1,5 +1,7 @@
 from huginn.models import Segment
-from huginn.render import Meta, moment_url, output_name, paragraphs, render, timecode
+from huginn.render import (
+    Meta, id_suffix, moment_url, numbered_name, output_name, paragraphs, playlist_dir_name, render, timecode,
+)
 
 
 def seg(start, end, text):
@@ -83,3 +85,18 @@ def test_output_names():
     assert output_name("???", "x1") == "media-x1.md"
     assert output_name("Same title", "a1") != output_name("Same title", "b2")
     assert len(output_name("é" * 300, "id")) == 80 + len("-id.md")
+
+
+def test_id_suffix_ends_the_output_name():
+    assert output_name("Talk", "dQw4-w9_WgX").endswith(id_suffix("dQw4-w9_WgX"))
+    assert id_suffix("a1") == "-a1.md"
+
+
+def test_playlist_dir_names():
+    assert playlist_dir_name("Kurs: Rust", "PLabc") == "Kurs-Rust-PLabc"
+    assert playlist_dir_name("Same title", "PL1") != playlist_dir_name("Same title", "PL2")
+
+
+def test_numbered_names_sort_in_playlist_order():
+    assert [numbered_name(n, 3, "talk-a1.md") for n in (1, 3)] == ["01-talk-a1.md", "03-talk-a1.md"]
+    assert [numbered_name(n, 120, "talk-a1.md") for n in (1, 120)] == ["001-talk-a1.md", "120-talk-a1.md"]

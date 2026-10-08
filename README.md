@@ -26,9 +26,21 @@ After that the `huginn` command is available from any directory. The install is 
 huginn "https://www.youtube.com/watch?v=..."      # subtitles if available, otherwise Whisper
 huginn --whisper "https://www.youtube.com/watch?v=..."   # always Whisper
 huginn lecture.mp4 ~/Recordings                   # a file and every media file in a directory
+huginn "https://www.youtube.com/playlist?list=..."       # every video of a playlist
 ```
 
 You can pass several sources at once. From a directory only top-level media files are taken.
+
+A playlist gets its own subdirectory, and the files are numbered in playlist order:
+
+```
+transcripts/
+  Course-title-PLabc123/
+    01-Introduction-dQw4w9WgXcQ.md
+    02-Second-lecture-x7Kp2aQ9LmN.md
+```
+
+Running the same playlist again processes only the videos that have no transcript yet. A transcribed video is recognised by its id, so it keeps its file and number even if the playlist was reordered; `--force` recreates everything with the current numbers.
 
 | Flag | What it does |
 |---|---|
@@ -47,7 +59,8 @@ Progress is printed to stderr, the final summary to stdout. If at least one sour
 - **The first recognition run** downloads the model (about 1.5 GB for `turbo`) into the Hugging Face cache.
 - **Subtitles are skipped** when the platform does not report the media language and there are several authored tracks; pass `--lang` to pick one.
 - **Clickable timecodes** are produced only for YouTube.
-- **Playlists and channels** are not supported — pass links to individual videos.
+- **A link to a video opened inside a playlist** (`watch?v=...&list=...`) gives one transcript of that video; pass the playlist link itself (`playlist?list=...`) to get all of them.
+- **Channels** are not supported — pass a link to a playlist or to individual videos.
 - **If links stop working**, update `yt-dlp`: `uv lock --upgrade-package yt-dlp && ./install.sh`.
 
 ## Development

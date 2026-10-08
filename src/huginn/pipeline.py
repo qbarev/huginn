@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Callable
 
 from huginn import subtitles
-from huginn.fetch import Fetcher
+from huginn.fetch import Entry, Fetcher, MediaInfo, Playlist
 from huginn.models import Item, Result, Segment, SourceError
-from huginn.render import Meta, output_name, render
+from huginn.render import Meta, id_suffix, numbered_name, output_name, playlist_dir_name, render
 from huginn.transcriber import Transcriber, require_ffmpeg
 
 
@@ -16,6 +16,13 @@ class Options:
     whisper: bool = False
     language: str | None = None
     force: bool = False
+
+
+def _transcript_of(directory: Path, media_id: str | None) -> Path | None:
+    if not media_id or not directory.is_dir():
+        return None
+    suffix = id_suffix(media_id)
+    return next((p for p in sorted(directory.iterdir()) if p.name.endswith(suffix)), None)
 
 
 class Pipeline:
@@ -33,24 +40,60 @@ class Pipeline:
         self.log = log
         self.check_ffmpeg = check_ffmpeg
 
-    def process(self, item: Item) -> Result:
+    def process(self, item: Item) -> list[Result]:
         """Process one source; any error becomes a result, not an exception."""
         self.log(f"→ {item.value}")
-        try:
-            if item.kind == "url":
-                return self._url(item.value)
-            return self._file(Path(item.value))
-        except SourceError as error:
-            return Result(item.value, "failed", reason=str(error))
-        except Exception as error:
-            return Result(item.value, "failed", reason=f"{type(error).__name__}: {error}")
+        if item.kind == "url":
+            return self._guarded(item.value, lambda: self._link(item.value))
+        return self._guarded(item.value, lambda: [self._file(Path(item.value))])
 
-    def _url(self, url: str) -> Result:
+    def _guarded(self, source: str, action: Callable[[], list[Result]]) -> list[Result]:
+        try:
+            return action()
+        except SourceError as error:
+            return [Result(source, "failed", reason=str(error))]
+        except Exception as error:
+            return [Result(source, "failed", reason=f"{type(error).__name__}: {error}")]
+
+    def _link(self, url: str) -> list[Result]:
         info = self.fetcher.probe(url)
+        if isinstance(info, Playlist):
+            return self._playlist(info)
         target = self.options.out / output_name(info.title, info.id)
         if self._done(target):
-            return Result(url, "skipped", str(target))
+            return [Result(url, "skipped", str(target))]
+        return [self._media(url, info, target)]
 
+    def _playlist(self, playlist: Playlist) -> list[Result]:
+        count = len(playlist.entries)
+        if not count:
+            raise SourceError("playlist is empty")
+        self.log(f"  playlist: {playlist.title} ({count} videos)")
+        directory = self.options.out / playlist_dir_name(playlist.title, playlist.id)
+        results: list[Result] = []
+        for position, entry in enumerate(playlist.entries, start=1):
+            self.log(f"→ {entry.url}")
+            results += self._guarded(entry.url, lambda: [self._entry(entry, directory, position, count)])
+        return results
+
+    def _entry(self, entry: Entry, directory: Path, position: int, count: int) -> Result:
+        """One video of a playlist; a finished one is recognised by its id at any position."""
+        existing = _transcript_of(directory, entry.id)
+        if existing and self._done(existing):
+            return Result(entry.url, "skipped", str(existing))
+        info = self.fetcher.probe(entry.url)
+        if isinstance(info, Playlist):
+            raise SourceError("nested playlists and channels are not supported, pass a link to a playlist")
+        target = directory / numbered_name(position, count, output_name(info.title, info.id))
+        existing = target if target.exists() else _transcript_of(directory, info.id)
+        if existing and self._done(existing):
+            return Result(entry.url, "skipped", str(existing))
+        result = self._media(entry.url, info, target)
+        if existing and existing != target:
+            existing.unlink()
+        return result
+
+    def _media(self, url: str, info: MediaInfo, target: Path) -> Result:
         segments: list[Segment] = []
         language = self.options.language or info.language
         method = ""
